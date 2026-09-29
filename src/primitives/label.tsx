@@ -32,9 +32,23 @@ function emphasis(style: MarkerStyle, { muted, inverse }: { muted: boolean; inve
   return next;
 }
 
-export function Label({ children, maxWidth, muted = false, value = false, inverse = false }: LabelProps) {
-  const { theme } = useTheme();
-  const style = emphasis(value ? theme.text.value : theme.text.label, { muted, inverse });
+/**
+ * The one text-row implementation behind `Label`, `Muted`, and `ErrorText`.
+ *
+ * The box contract is load bearing: `flexShrink={0}` keeps a measured string
+ * from being squeezed below its budget, while `flexGrow` belongs to unmeasured
+ * children so a label fills the row without stretching the text element itself.
+ * Any change here moves all three primitives at once.
+ */
+function StyledText({
+  style,
+  maxWidth,
+  children,
+}: {
+  style: MarkerStyle;
+  maxWidth?: number;
+  children?: ReactNode;
+}) {
   const isString = typeof children === "string" || typeof children === "number";
   const raw = isString ? String(children) : null;
   const shown = raw !== null && maxWidth !== undefined ? truncateToWidth(raw, maxWidth) : raw;
@@ -49,48 +63,38 @@ export function Label({ children, maxWidth, muted = false, value = false, invers
         {shown === null ? children : undefined}
       </text>
     </box>
+  );
+}
+
+export function Label({ children, maxWidth, muted = false, value = false, inverse = false }: LabelProps) {
+  const { theme } = useTheme();
+  return (
+    <StyledText
+      style={emphasis(value ? theme.text.value : theme.text.label, { muted, inverse })}
+      maxWidth={maxWidth}
+    >
+      {children}
+    </StyledText>
   );
 }
 
 /** De-emphasised supporting text, such as a hint description or a suffix. */
 export function Muted({ children, maxWidth }: { children?: ReactNode; maxWidth?: number }) {
   const { theme } = useTheme();
-  const style = emphasis(theme.text.muted, { muted: false, inverse: false });
-  const isString = typeof children === "string" || typeof children === "number";
-  const raw = isString ? String(children) : null;
-  const shown = raw !== null && maxWidth !== undefined ? truncateToWidth(raw, maxWidth) : raw;
   return (
-    <box flexShrink={0} flexGrow={raw === null ? 1 : 0} minWidth={0}>
-      <text
-        content={shown !== null ? paint(shown, style) : undefined}
-        fg={style.color}
-        wrapMode="none"
-        truncate={maxWidth !== undefined}
-      >
-        {shown === null ? children : undefined}
-      </text>
-    </box>
+    <StyledText style={emphasis(theme.text.muted, { muted: false, inverse: false })} maxWidth={maxWidth}>
+      {children}
+    </StyledText>
   );
 }
 
 /** An error message, painted in the theme's error style. */
 export function ErrorText({ children, maxWidth }: { children?: ReactNode; maxWidth?: number }) {
   const { theme } = useTheme();
-  const style = emphasis(theme.text.error, { muted: false, inverse: false });
-  const isString = typeof children === "string" || typeof children === "number";
-  const raw = isString ? String(children) : null;
-  const shown = raw !== null && maxWidth !== undefined ? truncateToWidth(raw, maxWidth) : raw;
   return (
-    <box flexShrink={0} flexGrow={raw === null ? 1 : 0} minWidth={0}>
-      <text
-        content={shown !== null ? paint(shown, style) : undefined}
-        fg={style.color}
-        wrapMode="none"
-        truncate={maxWidth !== undefined}
-      >
-        {shown === null ? children : undefined}
-      </text>
-    </box>
+    <StyledText style={emphasis(theme.text.error, { muted: false, inverse: false })} maxWidth={maxWidth}>
+      {children}
+    </StyledText>
   );
 }
 

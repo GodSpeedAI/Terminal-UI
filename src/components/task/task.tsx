@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Label, Muted } from "../../primitives/label.js";
+import { ErrorText, Label, Muted } from "../../primitives/label.js";
 import { Marker, RailRow } from "../../primitives/rail.js";
 import { useTheme } from "../../theme/context.js";
 import type { LifecycleState, PromptPhase } from "../../theme/state.js";
@@ -143,6 +143,12 @@ export function Group({ message, tasks, progress, error, availableWidth }: Group
     availableWidth === undefined
       ? 24
       : Math.max(1, Math.min(24, availableWidth - theme.spacing.railWidth - theme.spacing.labelGap));
+  // The error row is the Prompt shell's error row, so a failed group reads like
+  // a rejected prompt. Its budget spends the rail, the indent, the error
+  // marker's cells, and the gap — measured from the theme, never assumed.
+  const errorGutter =
+    theme.spacing.railWidth + theme.spacing.bodyIndent + theme.markers.error.width + theme.spacing.labelGap;
+  const errorBudget = availableWidth === undefined ? undefined : Math.max(0, availableWidth - errorGutter);
   const state: LifecycleState = error
     ? "error"
     : tasks.every((t) => t.state === "complete")
@@ -166,7 +172,12 @@ export function Group({ message, tasks, progress, error, availableWidth }: Group
       ))}
       {error ? (
         <RailRow>
-          <Muted maxWidth={availableWidth}>{error}</Muted>
+          <box flexDirection="row" width="100%" minWidth={0}>
+            <Marker state="error" />
+            <box flexDirection="column" flexGrow={1} paddingLeft={theme.spacing.labelGap} minWidth={0}>
+              <ErrorText maxWidth={errorBudget}>{error}</ErrorText>
+            </box>
+          </box>
         </RailRow>
       ) : null}
     </box>

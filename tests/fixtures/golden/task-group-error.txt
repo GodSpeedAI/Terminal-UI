@@ -3,7 +3,7 @@
 │  ◇  Compile sources  4.8s                                 
 │  ■  Run test suite                                        
 │  ◇  Publish artifacts                                     
-│  Compilation failed                                       
+│  ■  Compilation failed                                    
                                                             
                                                             
                                                             

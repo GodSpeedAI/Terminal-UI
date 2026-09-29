@@ -33,6 +33,9 @@ const LEVEL_TO_STATUS: Record<LogProps["level"], StatusState> = {
  */
 export function Log({ message, level, availableWidth, suffix }: LogProps) {
   const { theme } = useTheme();
+  // The suffix renders as two spaces plus the annotation, so the reserve is the
+  // rendered width — the annotation alone would let a long suffix overflow the
+  // row's budget.
   const budget =
     availableWidth === undefined
       ? undefined
@@ -42,7 +45,7 @@ export function Log({ message, level, availableWidth, suffix }: LogProps) {
             theme.spacing.railWidth -
             theme.spacing.bodyIndent -
             1 -
-            (suffix ? stringWidth(suffix) + 1 : 0),
+            (suffix ? stringWidth(`  ${suffix}`) : 0),
         );
   return (
     <RailRow>
@@ -50,7 +53,7 @@ export function Log({ message, level, availableWidth, suffix }: LogProps) {
         <Marker state={LEVEL_TO_STATUS[level]} />
         <box flexDirection="row" width="100%" minWidth={0} paddingLeft={theme.spacing.bodyIndent}>
           <text content={paint(message, theme.text.label)} wrapMode="none" truncate={budget !== undefined} />
-          {suffix ? <Muted maxWidth={undefined}>{`  ${suffix}`}</Muted> : null}
+          {suffix ? <Muted maxWidth={budget}>{`  ${suffix}`}</Muted> : null}
         </box>
       </box>
     </RailRow>
