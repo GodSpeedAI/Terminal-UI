@@ -1,215 +1,126 @@
 # AGENTS.md
 
-## Mission
-
-Build a native **OpenTUI React component library** that combines:
-
-- Clack-inspired visual grammar,
-- OpenTUI-native rendering and interaction,
-- a native component Workbench,
-- deterministic testing,
-- shadcn-compatible source distribution.
-
-This is a component library, not a Clack port, wrapper, application framework, browser UI system, or workflow engine.
-
-## Architectural Invariants
-
-### OpenTUI is the substrate
-
-Production components render through OpenTUI.
-
-Prefer:
-
-- `@opentui/react`
-- `@opentui/core`
-
-Do not introduce DOM/browser runtime dependencies into the component library.
-
-Verify current OpenTUI APIs before relying on behavior involving rendering, focus, input, layout, lifecycle, or testing.
-
-### Preserve the visual grammar
-
-The default design language is inspired by Clack:
-
-- rail-oriented composition,
-- semantic markers,
-- restrained color,
-- whitespace and indentation,
-- clear active/completed/error transitions.
-
-Do not drift toward generic box-heavy terminal dashboards.
-
-Clack is a visual reference, not a runtime dependency.
-
-### Semantics before presentation
-
-Components express semantic state, not literal styling.
-
-Prefer concepts such as:
-
-- active
-- pending
-- complete
-- selected
-- error
-- disabled
-
-Colors, glyphs, and presentation tokens belong in themes.
-
-Do not scatter hard-coded glyphs or colors through components.
-
-### Compose shared primitives
-
-Shared concerns such as rails, markers, labels, hints, status indicators, completion rendering, and validation presentation should be composed from reusable primitives.
-
-Do not independently reimplement the same visual grammar inside each control.
-
-### Explicit state models
-
-Interactive components should use coherent state models rather than collections of overlapping booleans.
-
-State transitions must be predictable and testable.
-
-### Source ownership is first-class
-
-The library must support both:
-
-1. normal package imports, and
-2. shadcn-compatible source installation.
-
-Registry-installed components must not depend on hidden or unpublished internal modules.
-
-Shared source dependencies should themselves be installable registry items.
-
-There must be one implementation, not separate package and registry versions.
-
-### Native Workbench
-
-The primary component explorer is a native OpenTUI application.
-
-Do not replace it with browser-rendered replicas.
-
-Workbench scenarios should render the real production components.
-
-### Deterministic verification
-
-Use OpenTUI-native testing for rendering and interaction.
-
-Tests should verify meaningful behavior, not merely implementation structure.
-
-Visual tests must be deterministic.
-
-Animations and timing-sensitive components must provide a deterministic test path.
-
-## Development Strategy
-
-Use a vertical slice before expanding breadth.
-
-`Select` is the initial reference component.
-
-Prove the complete path:
-
-    component
-      → primitives/theme
-      → OpenTUI rendering
-      → keyboard interaction
-      → Workbench scenario
-      → deterministic tests
-      → shadcn registry installation
-      → clean consumer render
-
-Do not mass-produce components until this path works.
-
-Prefer the smallest architecture that satisfies current requirements.
-
-Do not introduce framework-scale abstractions without demonstrated need.
-
-## Agent Protocol
-
-Before changing code:
-
-1. Read this file.
-2. Inspect the relevant implementation and tests.
-3. Identify the architectural boundary involved.
-4. Verify external APIs when current OpenTUI or shadcn behavior matters.
-5. Make the smallest coherent change.
-6. Run focused verification.
-7. Update affected documentation when behavior or architecture changes.
-
-Do not rewrite working architecture simply because another structure is possible.
-
-Understand existing decisions before replacing them.
-
-## Verification Standard
-
-A task is not complete because code exists.
-
-Provide evidence appropriate to the change, such as:
-
-- typecheck,
-- tests,
-- interaction execution,
-- framebuffer/visual verification,
-- Workbench inspection,
-- registry validation,
-- clean-consumer installation,
-- package build.
-
-For visual changes, inspect the rendered result.
-
-For interaction changes, execute the interaction.
-
-For registry changes, prove installation into a clean consumer.
-
-## Subagent Use
-
-For substantial work, use builder and independent verifier roles when available.
-
-The verifier should receive:
-
-- the original requirement,
-- the builder instructions,
-- the implementation,
-- relevant tests.
-
-Verification must identify:
-
-- unmet requirements,
-- deviations from instructions,
-- architectural regressions,
-- missing failure coverage,
-- whether the evidence actually supports approval.
-
-Approval requires evidence, not a superficial review.
-
-If verification fails, repair and verify again.
-
-## Stop Conditions
-
-Surface the tradeoff before proceeding if a change would require:
-
-- replacing OpenTUI as the rendering substrate,
-- introducing browser/DOM dependencies into production components,
-- abandoning semantic states for raw styling APIs,
-- making registry components depend on unpublished internals,
-- maintaining separate implementations for package and source-copy users,
-- replacing the native Workbench with browser emulation,
-- introducing a major framework or subsystem not justified by current requirements,
-- materially changing the rail-oriented visual language.
-
-## Definition of Done
-
-A change is done when:
-
-- behavior is implemented coherently,
-- architectural invariants remain intact,
-- relevant tests pass,
-- the actual rendered/interacting behavior is verified,
-- source-copy distribution still works when affected,
-- documentation reflects meaningful architectural or behavioral changes.
-
-## Anchor
+Durable operating contract for coding agents working on **terminal-ui**. Keep this file project-specific, behavior-changing, and action-oriented; task state belongs in `.agents/`, detailed domain decisions live in `docs/`, and component scenarios live in `src/scenario/`.
+
+## 1. Project Identity & Purpose
+
+**terminal-ui** is a production OpenTUI React component library combining:
+- Clack-inspired visual grammar (vertical rails, semantic markers, restrained color, prompt-to-transcript collapse),
+- OpenTUI-native rendering and keyboard interaction (zero browser/DOM runtime dependencies),
+- a native OpenTUI component Workbench for live inspection and testing (40–160 column responsive layouts),
+- deterministic testing (unit, keyboard interaction, framebuffer visual goldens),
+- first-class shadcn-compatible source distribution alongside standard package exports.
+
+This is a component library. It is **not** a Clack port/wrapper, not a browser UI framework, and not an application workflow engine.
+
+## 2. Scope, Precedence & Surface Routing
+
+### Precedence
+1. Runtime safety and user constraints.
+2. This `AGENTS.md` operating contract.
+3. Canonical documentation in `docs/` (`architecture.md`, `visual-language.md`, `registry.md`, `testing.md`).
+4. Current implementation and test suites.
+
+### Surface Routing (Repository Map)
+- `src/theme/`: Semantic tokens, palettes (`clack`, `ascii`, `highContrast`), and prompt lifecycle state machine (`state.ts`).
+- `src/primitives/`: Reusable atomic visual building blocks (`Rail`, `RailRow`, `Marker`, `Label`, `HintRow`, `Status`, `Separator`).
+- `src/components/`: Composed interactive controls (`prompt`, `select`, `autocomplete`, `multiselect`, `input`, `confirm`, `task`, `feedback`, `composition`).
+- `src/scenario/`: Catalog of component scenarios used by both the native Workbench and the visual test suite.
+- `workbench/`: Native OpenTUI explorer application (`app/workbench.tsx`, `index.tsx`).
+- `registry.json` & `scripts/`: Source distribution definitions (`scripts/build-registry.ts`, `validate-registry.ts`, `verify-all-consumers.ts`). *Note: `registry.json` is generated; do not edit directly.*
+- `tests/`: Deterministic test suites (`unit/`, `interaction/`, `visual/` with golden fixtures in `tests/visual/__snapshots__/`).
+- `docs/`: In-depth architecture, visual language tokens, registry distribution trade-offs, and testing guides.
+- `.agents/`: Local agent workbench, handoff state (`CURRENT_STATUS.md`), plans, and audit reports.
+
+## 3. Architectural Invariants
+
+- **OpenTUI is the exclusive substrate**: Production components render through `@opentui/react` and `@opentui/core`. Never introduce DOM, browser, or HTML dependencies (`window`, `document`, `div`, etc.).
+- **Strict downward dependency layering**:
+  `theme` → `primitives` → `components` → `scenario` / `workbench`
+  Imports only point downward. Primitives know nothing of components; components know nothing of the Workbench or tests.
+- **Semantics before presentation**: Components name semantic states (`active`, `complete`, `error`, `selected`, `disabled`), never literal colors or glyphs. Themes map semantic states to presentation. Glyph shape carries meaning first; color carries emphasis second.
+- **Prompt shell owns lifecycle and collapse**: `Prompt` owns rails, questions, hint rows, validation error presentation, and the active → submitted collapse. Controls contribute only their body and summary.
+- **Single implementation for package and registry**: Registry-installed components (`@components/terminal-ui/`) and package imports (`@terminal-ui/react`) share the exact same source files. Never create divergent implementations or depend on unpublished internal modules.
+- **Native Workbench**: The component explorer runs in native OpenTUI and renders real production components in simulated widths (40–160 cols). Never replace it with browser mocks.
+- **Deterministic verification**: Keyboard interactions and visual framebuffer captures must be 100% deterministic. Never introduce timing races or non-deterministic test mocks.
+
+## 4. Change Boundaries
+
+### Always
+- Make the smallest effective change that fully satisfies the task.
+- Read affected source files and inspect nearby patterns/tests before editing.
+- Preserve downward dependency layering.
+- Run `bun run typecheck` and relevant tests after any change.
+- When adding or modifying components/primitives, rebuild the registry (`bun run registry:build`) and validate (`bun run registry:validate`).
+- Preserve unrelated worktree changes and avoid drive-by formatting.
+- Update `.agents/CURRENT_STATUS.md` whenever repository state, verification, or next steps change.
+
+### Ask First
+- Adding, replacing, or upgrading dependencies in `package.json`.
+- Modifying public exports (`src/index.ts`), theme interfaces, or semantic token sets.
+- Changing registry schema, install target paths, or breaking shadcn compatibility.
+- Updating visual goldens (`UPDATE_GOLDEN=1 bun test tests/visual`) without inspecting and confirming the rendered visual diff.
+- Deleting files or expanding scope into new architectural subsystems.
+
+### Never
+- Introduce DOM/browser/HTML elements into the library or Workbench.
+- Hardcode glyphs, colors, ANSI escape sequences, or box-drawing characters in components (use Theme/primitives).
+- Hand-edit `registry.json` (always generate via `bun run registry:build`).
+- Fork or maintain separate implementations for package vs. registry distribution.
+- Weaken test assertions, skip failing tests, or claim verification without running commands.
+
+## 5. Component Extension & Maintenance Playbook
+
+The core library and Workbench are fully built and verified (14 registry items, 208+ tests). When extending the library with new components (e.g. `Table`, `Tree`, `Tabs`, `CommandPalette`, `Form`):
+
+1. **Composition**: Build on `Prompt` and `primitives` inside `src/components/<name>/`. Do not reimplement rails or markers.
+2. **State & Input**: Use explicit state transitions (`src/theme/state.ts` / `usePromptState`) and handle OpenTUI keyboard events cleanly.
+3. **Scenario Catalog**: Define scenarios under `src/scenario/catalog/<name>.ts` with multiple states (active, submitted, error, disabled, long lists).
+4. **Unit & Interaction Tests**: Add deterministic specs under `tests/unit/<name>.test.tsx` verifying render, key navigation, validation, and narrow-width truncation.
+5. **Visual Golden**: Add a visual test case in `tests/visual/` and capture deterministic golden frames.
+6. **Registry Registration**: Add entry in `scripts/build-registry.ts`, run `bun run registry:build`, and add consumer fixture in `scripts/consumer-fixtures.ts`.
+7. **Verification**: Run `bun run verify` to confirm typecheck, lint, tests, registry validation, and clean-consumer install.
+
+## 6. Commands & Verification Ladder
+
+Run commands using **Bun 1.4+**:
+
+| Command | Purpose |
+| --- | --- |
+| `bun run workbench` | Launch native OpenTUI component explorer |
+| `bun run typecheck` | Typecheck entire repository (`tsc --noEmit`) |
+| `bun run lint` | Lint with Biome (`biome check .`) |
+| `bun run format` | Format with Biome (`biome format --write .`) |
+| `bun test` | Run complete test suite (unit, interaction, visual, fixture) |
+| `bun run test:visual` | Run visual regression suite against golden snapshots |
+| `bun run test:update` | Update visual golden snapshots (`UPDATE_GOLDEN=1`) |
+| `bun run registry:build` | Rebuild `registry.json` from component tree |
+| `bun run registry:validate` | Validate `registry.json` with official shadcn CLI checks |
+| `bun run consumer:verify:all` | Verify all registry items install & render in isolated consumers |
+| `bun run verify` | **Authoritative CI gate** (`typecheck` + `lint` + `test` + `registry:validate` + `consumer:verify:all`) |
+
+### Verification Ladder by Change Scale
+- **Localized bugfix / logic tweak**: `bun run typecheck` + focused `bun test <file>`.
+- **Component / primitive change**: `bun run typecheck` + `bun test` + `bun run registry:build` + `bun run registry:validate`.
+- **New component / registry / public export**: `bun run verify`.
+- **Before handoff / commit**: `bun run verify` must exit 0.
+
+## 7. State, Handoff & Definition of Done
+
+### Agent Working Memory (`.agents/`)
+- Maintain `.agents/CURRENT_STATUS.md` as the canonical handoff file.
+- When completing or pausing work, record: current state, verification command results, changed files, and immediate next steps.
+- Do not dump conversational transcripts or raw logs into memory files.
+
+### Definition of Done
+A task is done only when:
+1. Behavior is implemented according to architectural invariants.
+2. Downward layering and semantic token discipline are preserved.
+3. Relevant unit, interaction, and visual tests pass.
+4. If component files changed: `bun run registry:build` and `bun run registry:validate` pass.
+5. `bun run verify` passes cleanly with zero errors or uninspected visual regressions.
+6. `.agents/CURRENT_STATUS.md` accurately reflects the new state and verification evidence.
+
+## 8. Anchor
 
 **Build semantic, Clack-inspired OpenTUI components that developers can render natively, inspect, copy, own, compose, test, and extend.**
-
-When uncertain, preserve that.
