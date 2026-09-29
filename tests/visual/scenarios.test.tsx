@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { flushSync } from "@opentui/react";
 import { testRender } from "@opentui/react/test-utils";
+import { act } from "react";
 import { catalog } from "../../src/scenario/catalog.js";
 import type { Scenario } from "../../src/scenario/types.js";
 import { entryScenarios } from "../../src/scenario/types.js";
@@ -33,20 +34,32 @@ async function capture(scenario: Scenario, widthOverride?: number): Promise<stri
   await setup.renderOnce();
 
   // Replay the scenario's declared steps so a fixture can capture a state that
-  // is awkward to construct as an initial prop.
+  // is awkward to construct as an initial prop. Each step calls setState, and
+  // the test renderer enables React's act environment, so the update lands
+  // inside `act`; the flush below is what brings the frame current before the
+  // fixture captures it.
   for (const step of scenario.steps ?? []) {
     if ("type" in step) {
-      flushSync(() => {
-        for (const ch of step.type) setup.mockInput.pressKey(ch);
+      act(() => {
+        flushSync(() => {
+          for (const ch of step.type) setup.mockInput.pressKey(ch);
+        });
       });
     } else {
-      flushSync(() => setup.mockInput.pressKey(step.key as never, step.modifiers ?? {}));
+      act(() => {
+        flushSync(() => setup.mockInput.pressKey(step.key as never, step.modifiers ?? {}));
+      });
     }
     await setup.flush();
   }
 
   const frame = setup.captureCharFrame();
-  setup.renderer.destroy();
+  // Unmounting is itself a React update (the root unmounts the tree), so it
+  // happens inside `act` as well, and awaited so teardown completes before the
+  // next scenario mounts its own renderer.
+  await act(async () => {
+    await setup.renderer.destroy();
+  });
   return frame;
 }
 

@@ -1,7 +1,7 @@
 import type { KeyInput, TestRendererSetup } from "@opentui/core/testing";
 import { flushSync } from "@opentui/react";
 import { testRender } from "@opentui/react/test-utils";
-import { createElement, type ReactNode } from "react";
+import { act, createElement, type ReactNode } from "react";
 import { type ThemeName, ThemeProvider } from "../src/theme/index.js";
 
 /** A mounted component under test, with helpers for driving and reading it. */
@@ -60,7 +60,14 @@ export async function render(node: ReactNode, options: RenderOptions = {}): Prom
   // arrives glued to a stray ESC, so Escape and type-ahead cannot be asserted
   // deterministically at all. Enabling it here is what makes the interaction
   // tests reproducible rather than timing-dependent.
-  const setup = await testRender(wrapped, { width, height, kittyKeyboard: true });
+  //
+  // `exitOnCtrlC: false` keeps the renderer alive when a test presses Ctrl+C.
+  // Otherwise the renderer destroys itself on a nextTick outside any act scope,
+  // and OpenTUI's destroy path unmounts the React tree before the test-utils'
+  // act-wrapped unmount can claim it — an unfixable act() warning. Prompt
+  // components own the Ctrl+C chord themselves (`usePromptKeys`), which is the
+  // behavior these tests assert on.
+  const setup = await testRender(wrapped, { width, height, kittyKeyboard: true, exitOnCtrlC: false });
   await setup.renderOnce();
 
   const rows = (): string[] =>
@@ -75,42 +82,56 @@ export async function render(node: ReactNode, options: RenderOptions = {}): Prom
     rows,
     lines: () => rows().filter((line) => line.trim() !== ""),
     async press(keys: KeyInput[]) {
-      // The key handler runs synchronously and calls setState, so the update has
-      // to be flushed inside `flushSync` before the renderer is asked for a
-      // frame. Without this the frame is captured mid-update and every
-      // interaction assertion reads stale output.
-      flushSync(() => {
-        for (const k of keys) setup.mockInput.pressKey(k);
+      // The key handler runs synchronously and calls setState, and the test
+      // renderer enables React's act environment, so an update outside `act`
+      // is reported as "not wrapped in act(...)". `act` scopes the update;
+      // `flushSync` keeps the update landing synchronously inside it, and the
+      // `flush` below is what actually brings the frame current. Without that
+      // ordering every interaction assertion reads stale output.
+      act(() => {
+        flushSync(() => {
+          for (const k of keys) setup.mockInput.pressKey(k);
+        });
       });
       await setup.flush();
     },
     async key(k) {
-      flushSync(() => setup.mockInput.pressKey(k));
+      act(() => {
+        flushSync(() => setup.mockInput.pressKey(k));
+      });
       await setup.flush();
     },
     async type(text) {
       // Driven through `pressKey` rather than `typeText` so the whole run lands
-      // inside one flush boundary. `typeText` awaits between characters, which
-      // schedules the resulting state update outside `flushSync` and leaves the
-      // captured frame stale.
-      flushSync(() => {
-        for (const ch of text) setup.mockInput.pressKey(ch);
+      // inside one act/flush boundary. `typeText` awaits between characters,
+      // which schedules each resulting state update on its own frame and leaves
+      // the captured frame stale.
+      act(() => {
+        flushSync(() => {
+          for (const ch of text) setup.mockInput.pressKey(ch);
+        });
       });
       await setup.flush();
     },
     async pressWith(modifiers, k) {
-      flushSync(() => setup.mockInput.pressKey(k, modifiers));
+      act(() => {
+        flushSync(() => setup.mockInput.pressKey(k, modifiers));
+      });
       await setup.flush();
     },
     async escape() {
       // A bare ESC byte is ambiguous with the start of an escape sequence, so
       // the renderer's dedicated helper is the only reliable way to assert on
       // it. `pressKey("ESCAPE")` silently produces no event at all.
-      flushSync(() => setup.mockInput.pressEscape());
+      act(() => {
+        flushSync(() => setup.mockInput.pressEscape());
+      });
       await setup.flush();
     },
     async setWidth(nextWidth, nextHeight = height) {
-      setup.resize(nextWidth, nextHeight);
+      // Resize drives a synchronous re-render too, so the same act discipline
+      // applies before the frame is flushed.
+      act(() => setup.resize(nextWidth, nextHeight));
       await setup.flush();
     },
   };
