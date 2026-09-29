@@ -253,8 +253,18 @@ function computeDependencies(item: ItemSpec): string[] {
  * emitted empty.
  */
 function computeExternalDependencies(item: ItemSpec): string[] | undefined {
+  const specifiers = bareImports(item.files);
+  // Source parsing cannot see the jsx runtime: the compiler injects
+  // `@opentui/react/jsx-runtime` into every `.tsx` file per the root
+  // tsconfig's `jsxImportSource`, and no `import` statement ever names it. An
+  // item with a `.tsx` file therefore depends on `@opentui/react` whether or
+  // not a source line says so, and omitting it would advertise a registry
+  // item that cannot compile in a consumer lacking the package.
+  if (item.files.some((file) => file.endsWith(".tsx"))) {
+    specifiers.add("@opentui/react");
+  }
   const deps: string[] = [];
-  for (const specifier of [...bareImports(item.files)].sort()) {
+  for (const specifier of [...specifiers].sort()) {
     const range = PEER_DEPENDENCIES[specifier];
     if (!range) {
       throw new Error(
@@ -306,7 +316,7 @@ const byName = new Map(built.map((item) => [item.name, item]));
 const registry = {
   $schema: "https://ui.shadcn.com/schema/registry.json",
   name: "terminal-ui",
-  homepage: "https://github.com/terminal-ui/terminal-ui",
+  homepage: "https://github.com/GodSpeedAI/Terminal-UI",
   // `items` is an array, not a keyed object. The keyed form is the legacy
   // shape; `shadcn registry validate` rejects it.
   items: built,
