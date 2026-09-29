@@ -1,0 +1,40 @@
+│                                                           
+◆  Choose a command                                         
+│  ● Build project                                          
+│  ○ Run tests                                              
+│  ○ Lint sources (strict)                                  
+│  ○ Deploy to production                                   
+│  ↑/↓ navigate • Enter: confirm                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            

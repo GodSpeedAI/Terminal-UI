@@ -1,4 +1,4 @@
-import { Marker, Rail, RailRow, Status } from "../components/../primitives/rail.js";
+import { Autocomplete, type AutocompleteOption } from "../components/autocomplete/autocomplete.js";
 import { Confirm } from "../components/confirm/confirm.js";
 import {
   Cancel,
@@ -20,6 +20,7 @@ import {
   TextInput,
 } from "../components/index.js";
 import { Blank, Hint, Label, Muted, Separator } from "../primitives/index.js";
+import { Marker, Rail, RailRow, Status } from "../primitives/rail.js";
 import type { CatalogEntry, Scenario, ScenarioGroup } from "./types.js";
 
 /** Option set reused across the Select and MultiSelect scenarios. */
@@ -40,6 +41,14 @@ const FEATURES: SelectOption<string>[] = [
 const LONG_OPTIONS: SelectOption<string>[] = [
   { value: "a", label: "A region whose name is far too long to fit on one row" },
   { value: "b", label: "Short" },
+];
+
+/** Option set reused across the Autocomplete scenarios. */
+const COMMANDS: AutocompleteOption<string>[] = [
+  { value: "build", label: "Build project" },
+  { value: "test", label: "Run tests" },
+  { value: "lint", label: "Lint sources", hint: "strict" },
+  { value: "deploy", label: "Deploy to production" },
 ];
 
 const TASKS: TaskProps[] = [
@@ -519,6 +528,68 @@ const multiSelect: CatalogEntry = {
   ],
 };
 
+const autocomplete: CatalogEntry = {
+  name: "Autocomplete",
+  category: "Input",
+  summary: "A filtering combobox: type to narrow, Enter to accept.",
+  usage: `<Autocomplete message="Choose a command" options={commands} />`,
+  keys: [
+    { keys: "any", action: "Filter the list by substring" },
+    { keys: "↑ ↓", action: "Move the highlight" },
+    { keys: "Home End", action: "Jump to first / last match" },
+    { keys: "Backspace", action: "Delete the last character" },
+    { keys: "Enter", action: "Accept the highlighted match, or the typed text" },
+    { keys: "Esc", action: "Cancel" },
+  ],
+  groups: [
+    {
+      name: "Autocomplete",
+      scenarios: [
+        scenario(
+          "autocomplete-default",
+          () => <Autocomplete message="Choose a command" options={COMMANDS} />,
+          {
+            width: 60,
+            tags: ["default"],
+          },
+        ),
+        scenario(
+          "autocomplete-typing",
+          () => <Autocomplete message="Choose a command" options={COMMANDS} />,
+          {
+            description: "Filtered by a typed substring.",
+            steps: [{ type: "pr" }],
+          },
+        ),
+        scenario(
+          "autocomplete-navigated",
+          () => <Autocomplete message="Choose a command" options={COMMANDS} />,
+          {
+            description: "Highlight moved to the second match.",
+            steps: [{ type: "pr" }, { key: "ARROW_DOWN" }],
+          },
+        ),
+        scenario(
+          "autocomplete-submitted",
+          () => <Autocomplete message="Choose a command" options={COMMANDS} />,
+          {
+            description: "Collapsed after accepting a match.",
+            steps: [{ type: "lint" }, { key: "RETURN" }],
+          },
+        ),
+        scenario(
+          "autocomplete-no-matches",
+          () => <Autocomplete message="Choose a command" options={COMMANDS} />,
+          {
+            description: "A filter that matches nothing.",
+            steps: [{ type: "zz" }],
+          },
+        ),
+      ],
+    },
+  ],
+};
+
 /* ------------------------------------------------------------------ */
 /* Feedback                                                             */
 /* ------------------------------------------------------------------ */
@@ -632,6 +703,7 @@ export const catalog: readonly CatalogEntry[] = [
   textInput,
   confirm,
   multiSelect,
+  autocomplete,
   feedback,
   progress,
   tasks,

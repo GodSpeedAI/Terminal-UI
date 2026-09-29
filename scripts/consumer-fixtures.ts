@@ -33,6 +33,12 @@ const MULTI_OPTIONS = `const options: MultiSelectOption<string>[] = [
   { value: "stag", label: "Staging" },
 ];`;
 
+/** The same list, typed for `Autocomplete`, which names its own option type. */
+const AUTOCOMPLETE_OPTIONS = `const options: AutocompleteOption<string>[] = [
+  { value: "build", label: "Build project" },
+  { value: "stag", label: "Staging" },
+];`;
+
 export const CONSUMERS: Record<string, ConsumerFixture> = {
   select: {
     imports: [
@@ -49,6 +55,23 @@ export const CONSUMERS: Record<string, ConsumerFixture> = {
       "│  ↑/↓ navigate • Enter: confirm",
     ],
     extra: OPTIONS,
+  },
+
+  autocomplete: {
+    imports: [
+      `import { Autocomplete, type AutocompleteOption } from "@/terminal-ui/components/autocomplete/autocomplete.js"`,
+      `import { ThemeProvider } from "@/terminal-ui/theme/index.js"`,
+    ],
+    wrap: "clack",
+    body: `<Autocomplete message="Choose a command" options={options} />`,
+    extra: AUTOCOMPLETE_OPTIONS,
+    expect: [
+      "│",
+      "◆  Choose a command",
+      "│  ● Build project",
+      "│  ○ Staging",
+      "│  ↑/↓ navigate • Enter: confirm",
+    ],
   },
 
   multiselect: {

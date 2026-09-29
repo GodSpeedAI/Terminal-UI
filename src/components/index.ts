@@ -1,3 +1,4 @@
+export * from "./autocomplete/autocomplete.js";
 export * from "./composition/composition.js";
 export * from "./composition/note.js";
 export * from "./confirm/confirm.js";

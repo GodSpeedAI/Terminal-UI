@@ -27,6 +27,13 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REGISTRY_ROOT = "terminal-ui";
 
+/** The version ranges the library publishes as peer dependencies. */
+const PEER_DEPENDENCIES = (
+  JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+    peerDependencies?: Record<string, string>;
+  }
+).peerDependencies as Record<string, string>;
+
 type FileType = "registry:ui" | "registry:lib" | "registry:hook" | "registry:component";
 
 interface ItemSpec {
@@ -35,8 +42,6 @@ interface ItemSpec {
   description: string;
   /** Repo-relative source files this item owns. */
   files: string[];
-  /** npm packages the item needs beyond the OpenTUI peer dependency. */
-  dependencies?: string[];
   /** Items that must already be installed. Computed; not authored. */
   registryDependencies?: string[];
   devDependencies?: string[];
@@ -49,6 +54,19 @@ interface BuiltItem {
   description: string;
   files: Array<{ path: string; type: FileType; target: string }>;
   registryDependencies: string[];
+  /**
+   * The bare npm specifiers the item's files import, each carrying the peer
+   * version range declared at the registry root as an npm spec
+   * (`"@opentui/core@>=0.5.0"`). Computed like `registryDependencies`, and
+   * omitted entirely when the item imports nothing from outside the
+   * installed tree.
+   *
+   * An array of specs rather than a `specifier -> range` map because that is
+   * the only shape the shadcn item schema defines for this field — the CLI
+   * rejects a map with `dependencies: Expected array, received object` — and
+   * a spec string is exactly what `shadcn add` hands to the package manager.
+   */
+  dependencies?: string[];
 }
 
 /**
@@ -98,6 +116,7 @@ const HOOK_FILES = [
 const COMPONENT_FILES: Record<string, string[]> = {
   prompt: ["src/components/prompt/prompt.tsx"],
   select: ["src/components/select/select.tsx"],
+  autocomplete: ["src/components/autocomplete/autocomplete.tsx"],
   multiselect: ["src/components/multiselect/multiselect.tsx"],
   "text-input": ["src/components/input/text-input.tsx"],
   confirm: ["src/components/confirm/confirm.tsx"],
@@ -114,6 +133,8 @@ const DESCRIPTIONS: Record<string, string> = {
   hooks: "Prompt lifecycle, keyboard ownership, hint construction, and width resolution.",
   prompt: "The prompt shell: rail, question, error presentation, hint row, and active-to-submitted collapse.",
   select: "A single-choice list with keyboard navigation and type-ahead.",
+  autocomplete:
+    "A filtering combobox: typing narrows the list to substring matches, and Enter accepts the highlighted option or the raw typed text.",
   multiselect: "A multiple-choice list with an independent selection.",
   "text-input": "A single-line text field with an explicit cursor, plus a masked variant.",
   confirm: "A two-way choice with both answers visible.",
@@ -181,12 +202,27 @@ function localImports(files: string[]): Set<string> {
 }
 
 /**
+ * Bare (non-relative) specifiers an item's files import, e.g. `react`,
+ * `@opentui/core`.
+ */
+function bareImports(files: string[]): Set<string> {
+  const seen = new Set<string>();
+  for (const file of files) {
+    const source = readFileSync(join(root, file), "utf8");
+    for (const match of source.matchAll(/(?:from|import)\s+["']([^"']+)["']/g)) {
+      const specifier = match[1] as string;
+      if (!specifier.startsWith(".")) seen.add(specifier);
+    }
+  }
+  return seen;
+}
+
+/**
  * Compute an item's `registryDependencies`.
  *
- * Only dependencies on *other items* are listed. Bare specifiers (`react`,
- * `@opentui/core`, `@opentui/react`) are peer dependencies of the whole
- * library and are declared once at the registry root, so they are not repeated
- * on every item.
+ * Only dependencies on *other items* are listed; npm packages are carried by
+ * the item's own `dependencies` metadata instead, so `shadcn add` can ensure
+ * a consumer actually has what the copied source imports.
  */
 function computeDependencies(item: ItemSpec): string[] {
   const deps = new Set<string>();
@@ -197,6 +233,38 @@ function computeDependencies(item: ItemSpec): string[] {
   // Always installable: an item that renders needs a theme to render with.
   if (item.name !== "theme" && item.name !== "utils") deps.add("theme");
   return [...deps].sort();
+}
+
+/**
+ * Compute an item's `dependencies` metadata from its real import statements.
+ *
+ * Every bare specifier the item's files import is emitted as an npm spec
+ * carrying the version range declared in the root `package.json`
+ * `peerDependencies` — the same ranges a package install would enforce,
+ * derived rather than authored so the manifest cannot drift from the import
+ * graph. A specifier with no peer entry is a build failure, not a silent
+ * omission: an undeclared import is exactly the "valid registry, broken
+ * consumer" failure this builder exists to prevent.
+ *
+ * The field is an array of spec strings (`"@opentui/core@>=0.5.0"`) rather
+ * than a map — the shadcn item schema defines `dependencies` as
+ * `Array<string>`, and the real CLI rejects a map. Returns `undefined` when
+ * the item imports nothing from npm, so the field is omitted rather than
+ * emitted empty.
+ */
+function computeExternalDependencies(item: ItemSpec): string[] | undefined {
+  const deps: string[] = [];
+  for (const specifier of [...bareImports(item.files)].sort()) {
+    const range = PEER_DEPENDENCIES[specifier];
+    if (!range) {
+      throw new Error(
+        `"${item.name}" imports "${specifier}", which has no entry in the root package.json ` +
+          `peerDependencies. Declare it there so the registry can advertise a version range.`,
+      );
+    }
+    deps.push(`${specifier}@${range}`);
+  }
+  return deps.length > 0 ? deps : undefined;
 }
 
 /** Classify a file for shadcn's own `files[].type` bookkeeping. */
@@ -217,17 +285,21 @@ function targetFor(file: string): string {
   return `@components/${REGISTRY_ROOT}/${file.replace(/^src\//, "")}`;
 }
 
-const built: BuiltItem[] = ITEMS.map((item) => ({
-  name: item.name,
-  type: item.type,
-  description: item.description,
-  files: item.files.map((file) => ({
-    path: file,
-    type: fileType(item, file),
-    target: targetFor(file),
-  })),
-  registryDependencies: computeDependencies(item),
-}));
+const built: BuiltItem[] = ITEMS.map((item) => {
+  const dependencies = computeExternalDependencies(item);
+  return {
+    name: item.name,
+    type: item.type,
+    description: item.description,
+    files: item.files.map((file) => ({
+      path: file,
+      type: fileType(item, file),
+      target: targetFor(file),
+    })),
+    registryDependencies: computeDependencies(item),
+    ...(dependencies ? { dependencies } : {}),
+  };
+});
 
 const byName = new Map(built.map((item) => [item.name, item]));
 
