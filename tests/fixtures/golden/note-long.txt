@@ -1,0 +1,40 @@
+◇  A considerably longer title for a note ────────────────╮ 
+│  │ This body is long enough that it must wrap onto      │ 
+│  │ several rows inside the frame, which is the behaviour│ 
+│  │ the frame exists to contain.                         │ 
+├  ───────────────────────────────────────────────────────╯ 
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            

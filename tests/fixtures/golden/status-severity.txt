@@ -1,0 +1,40 @@
+│  ●                                                        
+                                                            
+   info                                                     
+                                                            
+│  ◆                                                        
+                                                            
+   success                                                  
+                                                            
+│  ▲                                                        
+                                                            
+   warning                                                  
+                                                            
+│  ■                                                        
+                                                            
+   error                                                    
+                                                            
+│  ■                                                        
+                                                            
+   cancelled                                                
+                                                            
+│  ○                                                        
+                                                            
+   muted                                                    
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            

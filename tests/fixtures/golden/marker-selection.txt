@@ -1,0 +1,40 @@
+│  ●  selected                                              
+                                                            
+│  ○  unselected                                            
+                                                            
+│  ◼  checked                                               
+                                                            
+│  ◻  unchecked                                             
+                                                            
+│  ◇  disabled                                              
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            

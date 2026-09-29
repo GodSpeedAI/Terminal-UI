@@ -1,0 +1,40 @@
+◆  Building                                                 
+   ███████████████░░░░░░░░░                                 
+│  ◇  Resolve dependencies  1.2s                            
+│  ◇  Compile sources  4.8s                                 
+│  ◆  Run test suite                                        
+      ███████████████░░░░░░░░░                              
+│  ◇  Publish artifacts                                     
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            

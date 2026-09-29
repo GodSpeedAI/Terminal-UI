@@ -1,0 +1,40 @@
+|                                                           
+*  Select features                                          
+|  > Server rendering                                       
+|  [ ] Edge functions                                       
+|  [ ] Incremental cache                                    
+|  [ ] Beta features (unstable)                             
+|  Up/Down navigate - Space: toggle - Enter: confirm        
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            

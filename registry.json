@@ -1,0 +1,294 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "terminal-ui",
+  "homepage": "https://github.com/terminal-ui/terminal-ui",
+  "items": [
+    {
+      "name": "theme",
+      "type": "registry:ui",
+      "description": "Semantic state vocabulary and theme definitions (clack, ascii, high-contrast).",
+      "files": [
+        {
+          "path": "src/theme/types.ts",
+          "type": "registry:ui",
+          "target": "@components/terminal-ui/theme/types.ts"
+        },
+        {
+          "path": "src/theme/state.ts",
+          "type": "registry:ui",
+          "target": "@components/terminal-ui/theme/state.ts"
+        },
+        {
+          "path": "src/theme/base.ts",
+          "type": "registry:ui",
+          "target": "@components/terminal-ui/theme/base.ts"
+        },
+        {
+          "path": "src/theme/clack.ts",
+          "type": "registry:ui",
+          "target": "@components/terminal-ui/theme/clack.ts"
+        },
+        {
+          "path": "src/theme/ascii.ts",
+          "type": "registry:ui",
+          "target": "@components/terminal-ui/theme/ascii.ts"
+        },
+        {
+          "path": "src/theme/high-contrast.ts",
+          "type": "registry:ui",
+          "target": "@components/terminal-ui/theme/high-contrast.ts"
+        },
+        {
+          "path": "src/theme/context.ts",
+          "type": "registry:ui",
+          "target": "@components/terminal-ui/theme/context.ts"
+        },
+        {
+          "path": "src/theme/index.ts",
+          "type": "registry:ui",
+          "target": "@components/terminal-ui/theme/index.ts"
+        }
+      ],
+      "registryDependencies": []
+    },
+    {
+      "name": "utils",
+      "type": "registry:lib",
+      "description": "Terminal cell-width arithmetic and the bridge from theme styles to OpenTUI styled text.",
+      "files": [
+        {
+          "path": "src/utils/style.ts",
+          "type": "registry:lib",
+          "target": "@components/terminal-ui/utils/style.ts"
+        },
+        {
+          "path": "src/utils/text.ts",
+          "type": "registry:lib",
+          "target": "@components/terminal-ui/utils/text.ts"
+        }
+      ],
+      "registryDependencies": [
+        "theme"
+      ]
+    },
+    {
+      "name": "primitives",
+      "type": "registry:ui",
+      "description": "Rail, marker, status, label, hint, and separator — the visual grammar.",
+      "files": [
+        {
+          "path": "src/primitives/rail.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/primitives/rail.tsx"
+        },
+        {
+          "path": "src/primitives/label.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/primitives/label.tsx"
+        },
+        {
+          "path": "src/primitives/index.ts",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/primitives/index.ts"
+        }
+      ],
+      "registryDependencies": [
+        "theme",
+        "utils"
+      ]
+    },
+    {
+      "name": "hooks",
+      "type": "registry:hook",
+      "description": "Prompt lifecycle, keyboard ownership, hint construction, and width resolution.",
+      "files": [
+        {
+          "path": "src/hooks/use-prompt-keys.ts",
+          "type": "registry:hook",
+          "target": "@components/terminal-ui/hooks/use-prompt-keys.ts"
+        },
+        {
+          "path": "src/hooks/use-prompt-state.ts",
+          "type": "registry:hook",
+          "target": "@components/terminal-ui/hooks/use-prompt-state.ts"
+        },
+        {
+          "path": "src/hooks/hints.ts",
+          "type": "registry:hook",
+          "target": "@components/terminal-ui/hooks/hints.ts"
+        },
+        {
+          "path": "src/hooks/use-available-width.ts",
+          "type": "registry:hook",
+          "target": "@components/terminal-ui/hooks/use-available-width.ts"
+        }
+      ],
+      "registryDependencies": [
+        "primitives",
+        "theme"
+      ]
+    },
+    {
+      "name": "prompt",
+      "type": "registry:component",
+      "description": "The prompt shell: rail, question, error presentation, hint row, and active-to-submitted collapse.",
+      "files": [
+        {
+          "path": "src/components/prompt/prompt.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/components/prompt/prompt.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "primitives",
+        "theme",
+        "utils"
+      ]
+    },
+    {
+      "name": "select",
+      "type": "registry:component",
+      "description": "A single-choice list with keyboard navigation and type-ahead.",
+      "files": [
+        {
+          "path": "src/components/select/select.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/components/select/select.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "hooks",
+        "primitives",
+        "prompt",
+        "theme",
+        "utils"
+      ]
+    },
+    {
+      "name": "multiselect",
+      "type": "registry:component",
+      "description": "A multiple-choice list with an independent selection.",
+      "files": [
+        {
+          "path": "src/components/multiselect/multiselect.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/components/multiselect/multiselect.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "hooks",
+        "primitives",
+        "prompt",
+        "theme",
+        "utils"
+      ]
+    },
+    {
+      "name": "text-input",
+      "type": "registry:component",
+      "description": "A single-line text field with an explicit cursor, plus a masked variant.",
+      "files": [
+        {
+          "path": "src/components/input/text-input.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/components/input/text-input.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "hooks",
+        "primitives",
+        "prompt",
+        "theme",
+        "utils"
+      ]
+    },
+    {
+      "name": "confirm",
+      "type": "registry:component",
+      "description": "A two-way choice with both answers visible.",
+      "files": [
+        {
+          "path": "src/components/confirm/confirm.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/components/confirm/confirm.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "hooks",
+        "primitives",
+        "prompt",
+        "theme",
+        "utils"
+      ]
+    },
+    {
+      "name": "note",
+      "type": "registry:component",
+      "description": "A framed aside for free-form text.",
+      "files": [
+        {
+          "path": "src/components/composition/note.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/components/composition/note.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "primitives",
+        "theme",
+        "utils"
+      ]
+    },
+    {
+      "name": "composition",
+      "type": "registry:component",
+      "description": "Log lines, block edges, and flow open/close.",
+      "files": [
+        {
+          "path": "src/components/composition/composition.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/components/composition/composition.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "primitives",
+        "theme",
+        "utils"
+      ]
+    },
+    {
+      "name": "feedback",
+      "type": "registry:component",
+      "description": "Spinner and progress bar, both driven by an injectable frame clock.",
+      "files": [
+        {
+          "path": "src/components/feedback/feedback.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/components/feedback/feedback.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "primitives",
+        "theme",
+        "utils"
+      ]
+    },
+    {
+      "name": "task",
+      "type": "registry:component",
+      "description": "Task rows, task lists, and prompt groups.",
+      "files": [
+        {
+          "path": "src/components/task/task.tsx",
+          "type": "registry:component",
+          "target": "@components/terminal-ui/components/task/task.tsx"
+        }
+      ],
+      "registryDependencies": [
+        "primitives",
+        "prompt",
+        "theme",
+        "utils"
+      ]
+    }
+  ]
+}

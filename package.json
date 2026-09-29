@@ -1,0 +1,47 @@
+{
+  "name": "@terminal-ui/react",
+  "version": "0.1.0",
+  "description": "Clack-inspired OpenTUI React component library with native Workbench and shadcn-compatible source distribution.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./workbench": "./workbench/index.ts"
+  },
+  "files": [
+    "src",
+    "registry.json"
+  ],
+  "scripts": {
+    "workbench": "bun run workbench/index.tsx",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "bun test tests/unit tests/interaction",
+    "test:visual": "bun test tests/visual",
+    "test:interaction": "bun test tests/interaction",
+    "test:update": "UPDATE_GOLDEN=1 bun test tests/visual",
+    "registry:build": "bun run scripts/build-registry.ts",
+    "registry:validate": "bun run scripts/validate-registry.ts",
+    "consumer:verify": "bun run scripts/verify-clean-consumer.ts",
+    "consumer:verify:all": "bun run scripts/verify-all-consumers.ts",
+    "verify": "bun run typecheck && bun run lint && bun test && bun run registry:validate && bun run consumer:verify"
+  },
+  "peerDependencies": {
+    "@opentui/core": ">=0.5.0",
+    "@opentui/react": ">=0.5.0",
+    "react": ">=19.2.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.14",
+    "@opentui/core": "^0.5.12",
+    "@opentui/react": "^0.5.12",
+    "@types/bun": "^1.4.0",
+    "@types/react": "^19.2.0",
+    "react": "^19.2.0",
+    "typescript": "^5.9.3"
+  }
+}

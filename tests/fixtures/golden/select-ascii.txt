@@ -1,0 +1,40 @@
+|                                                           
+*  Choose environment                                       
+|  > Production (live traffic)                              
+|    Staging                                                
+|    Development                                            
+|  o Local only                                             
+|  Up/Down navigate - Enter: confirm                        
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            

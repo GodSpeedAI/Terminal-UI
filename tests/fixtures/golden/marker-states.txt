@@ -1,0 +1,40 @@
+│  ◆  active                                                
+                                                            
+│  ◇  pending                                               
+                                                            
+│  ◆  running                                               
+                                                            
+│  ◇  complete                                              
+                                                            
+│  ■  error                                                 
+                                                            
+│  ▲  warning                                               
+                                                            
+│  ■  cancelled                                             
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            

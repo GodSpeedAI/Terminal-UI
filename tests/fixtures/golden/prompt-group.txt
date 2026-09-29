@@ -1,0 +1,40 @@
+│                                                           
+◇  Project name  demo-app                                   
+│                                                           
+◇  Package manager  bun                                     
+│                                                           
+◇  Use TypeScript?  Yes                                     
+└                                                           
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            

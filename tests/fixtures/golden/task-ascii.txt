@@ -1,0 +1,40 @@
+|  o  Resolve dependencies  1.2s                            
+|  o  Compile sources  4.8s                                 
+|  *  Run test suite                                        
+      ###############.........                              
+|  o  Publish artifacts                                     
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            

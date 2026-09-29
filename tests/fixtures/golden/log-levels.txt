@@ -1,0 +1,40 @@
+│  ◇  Checked out main                                      
+                                                            
+│  ●  Listening on :3000                                    
+                                                            
+│  ◇  Build complete in 4.8s                                
+                                                            
+│  ▲  2 vulnerabilities found                               
+                                                            
+│  ■  Failed to write cache                                 
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
+                                                            
