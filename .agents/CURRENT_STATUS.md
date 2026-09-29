@@ -6,9 +6,7 @@ layout and its width knob moved only a status number — both faults are fixed
 and covered by tests. `Autocomplete` is implemented.
 
 Last verified with: Bun 1.4.0, TypeScript 5.9.3, `@opentui/react` 0.5.12,
-`@opentui/core` 0.5.12, React 19.3.0, biome 2.5.14. The registry validator runs
-the real `shadcn` CLI (`npx shadcn@latest`), so its version is whatever the
-registry resolves at run time.
+`@opentui/core` 0.5.12, React 19.3.0, biome 2.5.14, shadcn CLI 4.21.0.
 
 ## Verification results
 
@@ -22,6 +20,7 @@ registry resolves at run time.
 | Registry schema | `bun run registry:validate` | 14 items / 27 files, accepted by the real `shadcn` CLI |
 | Clean consumers | `bun run consumer:verify:all` | 14/14 install, typecheck, render |
 | Workbench | `bun run workbench` | launches and renders at 40–160 columns; the live pane mounts in both layouts |
+| Hosted registry | `bunx shadcn@latest add GodSpeedAI/Terminal-UI/select` | verified 2026-09-29 in a throwaway consumer: 19 files installed from `main`, dependencies resolved, source typechecks and renders the reference grammar |
 
 Everything is verified by execution, not by inspection alone: the Workbench was
 captured from a real pty, and the clean-consumer fixtures typecheck and render

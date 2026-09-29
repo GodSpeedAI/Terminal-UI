@@ -248,3 +248,28 @@ All findings were remediated on a branch (`remediation/audit-2026-09-29`) using 
 1. **Registry dependency derivation is blind to the compiler-injected `jsx-runtime` import** — it parses source `import` statements only, so `.tsx` items understate `@opentui/react` in their `dependencies`. Harmless for any real OpenTUI consumer (which necessarily has `@opentui/react`), and `registry:validate`'s import-graph check is consistent with the same rule, but a future builder improvement could count `.tsx` files as `@opentui/react` importers.
 2. **P3-1** (`bunx shadcn add <owner>/<repo>/select` executed against the hosted registry) remains open until the repository is public.
 3. `Autocomplete`'s option-row `"disabled"` marker branch is unreachable by construction (disabled options are filtered out before rendering) — defensive, kept for symmetry with `Select`.
+
+### Residuals resolved (2026-09-29, repository now public)
+
+1. **jsx-runtime blind spot — fixed.** The registry builder now credits any
+   item containing a `.tsx` file with an `@opentui/react` dependency (the root
+   tsconfig compiles JSX against `@opentui/react`'s runtime, and no source
+   `import` names the injected `jsx-runtime`). Rebuilt, re-validated by the
+   real CLI, 14/14 clean consumers still pass. `docs/registry.md`'s blind-spot
+   paragraph is replaced by the rule.
+2. **Real hosted-registry install — verified.** The repository is
+   `GodSpeedAI/Terminal-UI`; the remediation branch was fast-forward-merged to
+   `main` so the default branch carries the registry (the CLI resolves
+   dependency addresses against the default branch). In a throwaway consumer:
+   `bunx shadcn@latest add GodSpeedAI/Terminal-UI/select` resolved `select`
+   plus its five dependencies from the hosted registry, created 19 files under
+   `src/components/terminal-ui/`, installed the item-declared npm dependencies,
+   and the copied source typechecked and rendered the exact reference grammar.
+
+Additional fix surfaced by (2): shadcn 4.21.0 resolves a *bare*
+`registryDependencies` name against its upstream style registry, not the
+originating GitHub repository — so the manifest now emits dependencies as full
+`owner/repo/item` addresses. That routing is what makes the documented
+`add <owner>/<repo>/<select>` command work; see `docs/registry.md`
+("Dependency addresses, not bare names"). The placeholder homepage is also
+gone: `registry.json`'s `homepage` is derived from the real `GITHUB_SLUG`.

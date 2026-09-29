@@ -8,8 +8,14 @@ something that was never published.
 ## Install
 
 ```bash
-bunx shadcn@latest add terminal-ui/terminal-ui/select
+bunx shadcn@latest add GodSpeedAI/Terminal-UI/select
 ```
+
+This is the real CLI resolving `registry.json` from the repository's default
+branch, verified on 2026-09-29 in a throwaway consumer: `select` resolved its
+five dependencies, 19 files landed under `src/components/terminal-ui/`, the
+item's `dependencies` were installed by the package manager, and the copied
+source typechecked and rendered the reference grammar.
 
 `select` pulls its dependencies transitively:
 
@@ -17,10 +23,13 @@ bunx shadcn@latest add terminal-ui/terminal-ui/select
 select → prompt, hooks, primitives, utils, theme
 ```
 
-Those land under your components directory, preserving their relative layout:
+Where the files land follows the consumer's aliases. With the standard shadcn
+setup (`aliases.components: "@/components"` and `"@/*": ["./src/*"]` in
+tsconfig), everything arrives under `src/components/terminal-ui/`, preserving
+its relative layout:
 
 ```text
-components/terminal-ui/
+src/components/terminal-ui/
   components/prompt/prompt.tsx
   components/select/select.tsx
   hooks/use-prompt-keys.ts
@@ -30,11 +39,15 @@ components/terminal-ui/
   ...
 ```
 
+In a bare project with no resolvable components alias, the CLI preserves the
+target's literal `@components/` prefix and creates that directory — point the
+tsconfig path alias at it and the imports resolve identically.
+
 You then import by path and edit freely:
 
 ```tsx
-import { Select, type SelectOption } from "@/terminal-ui/components/select/select.js";
-import { ThemeProvider } from "@/terminal-ui/theme/index.js";
+import { Select, type SelectOption } from "@/components/terminal-ui/components/select/select.js";
+import { ThemeProvider } from "@/components/terminal-ui/theme/index.js";
 ```
 
 Wiring a real consumer is exactly what `fixtures/clean-consumer` does.
@@ -108,6 +121,24 @@ Every file belongs to exactly one item. That keeps the graph a tree rather than
 a mesh, and it is why an item's dependencies are exactly "the items that own the
 files it imports".
 
+## Dependency addresses, not bare names
+
+`registryDependencies` are emitted as full GitHub addresses —
+`"GodSpeedAI/Terminal-UI/theme"`, not `"theme"`. Verified against shadcn
+4.21.0: the CLI resolves a bare dependency name against its *upstream* style
+registry (`https://ui.shadcn.com/r/styles/<style>/<name>.json`), not the
+GitHub registry the parent item came from, so a bare `theme` 404s and the
+whole install dies. A full `owner/repo/item` address is routed back to this
+repository and resolved from the root `registry.json`, which is what makes the
+`shadcn add <owner>/<repo>/<item>` command above work.
+
+Addresses carry no `#ref`, so dependencies always resolve against the default
+branch — the distribution branch. Forks that want their own registry must
+update `GITHUB_SLUG` in `scripts/build-registry.ts` (one constant; the
+homepage is derived from it). The validator and the clean-consumer harness
+normalize the address to its item name, so the declared graph is still checked
+against the real import graph.
+
 ## Per-item npm dependencies
 
 Each item also carries a `dependencies` array of npm spec strings —
@@ -124,10 +155,11 @@ rejects the map form (`dependencies: Expected array, received object`). A spec
 string is also exactly what `shadcn add` hands to the package manager. An item
 that imports nothing from npm omits the field entirely (`composition`).
 
-One accepted blind spot: the derivation parses source `import` statements,
-which cannot see the `jsx-runtime` import the compiler injects, so `.tsx` items
-understate `@opentui/react`. That is harmless — anything rendering these
-components already runs `@opentui/react`.
+The derivation parses source `import` statements, which cannot see the
+`jsx-runtime` import the compiler injects — so any item containing a `.tsx`
+file is explicitly credited with an `@opentui/react` dependency (the root
+tsconfig compiles JSX against `@opentui/react`'s runtime). An item with only
+`.ts` files declares only what its imports say.
 
 ## Validation
 

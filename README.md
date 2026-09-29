@@ -94,19 +94,22 @@ way around its edges.
 
 ## Source-copy usage
 
-The registry is a first-class channel: you own the code.
+The registry is a first-class channel: you own the code. Verified against the
+real CLI on 2026-09-29:
 
 ```bash
-bunx shadcn@latest add terminal-ui/terminal-ui/select
+bunx shadcn@latest add GodSpeedAI/Terminal-UI/select
 ```
 
 `select` pulls `prompt`, `hooks`, `primitives`, `utils`, and `theme`
-transitively, and everything lands under `components/terminal-ui/` as editable
-TypeScript. You never install this package to use one component.
+transitively, and everything lands under your components alias as editable
+TypeScript — with the standard shadcn setup (`@/components`), that is
+`src/components/terminal-ui/`. You never install this package to use one
+component.
 
 ```tsx
-import { Select, type SelectOption } from "@/terminal-ui/components/select/select.js";
-import { ThemeProvider } from "@/terminal-ui/theme/index.js";
+import { Select, type SelectOption } from "@/components/terminal-ui/components/select/select.js";
+import { ThemeProvider } from "@/components/terminal-ui/theme/index.js";
 ```
 
 There is **one implementation**. `registry.json` is generated from the source
