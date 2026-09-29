@@ -46,20 +46,27 @@ is no preview reimplementation that could drift from the real thing.
 
 | Key | Action |
 | --- | --- |
-| `↑` `↓` | move the cursor |
-| `Tab` | move focus into / out of the live component |
-| `←` `→` | switch pane (wide terminals) |
+| `↑` `↓` | move in the focused list |
+| `Tab` | cycle focus: component list → scenario list → live component |
+| `←` `→` | step focus (wide terminals, lists only) |
+| `Enter` | open the selected component |
 | `/` | search components |
-| `r` | reset the scenario |
+| `r` | restore the scenario's width and theme |
 | `t` | cycle theme |
 | `a` | toggle ASCII |
 | `w` | cycle the simulated live width |
 | `?` | help |
 | `q` | quit |
 
-It is responsive: two panes at 80 columns and up, a single-column navigation
-stack below 72, and the live pane renders at a *simulated* width so two states
-can be compared at the same width regardless of the real terminal.
+It is responsive: two panes at 72 columns and up, a single-column navigation
+stack below. The live pane is mounted in **both** layouts, and the component
+under inspection renders at a *simulated* width — `w` cycles 40 through 160,
+`r` puts back the scenario's own width and theme — so two states can be
+compared at the same width regardless of the real terminal. `Tab` is the one
+key that always belongs to the Workbench: while the live component has focus it
+receives every other key untouched, so a typed `q` is a character and not a
+quit. Hosts can intercept quitting with the `onQuit` prop; the default ends the
+process.
 
 ## Package usage
 
@@ -147,23 +154,23 @@ cannot break a third-party theme.
 ## Components
 
 **Foundations** — `ThemeProvider`, `Rail`, `RailRow`, `Marker`, `Status`,
-`Label`, `Muted`, `Hint`, `KeyHint`, `Separator`
+`Label`, `Muted`, `Hint`, `Separator`
 
 **Composition** — `Prompt`, `StepLine`, `Note`, `Log`, `Intro`, `Outro`,
 `Cancel`, `PromptGroup`, `Group`
 
-**Input** — `TextInput`, `PasswordInput`, `Confirm`, `Select`, `MultiSelect`
+**Input** — `TextInput`, `PasswordInput`, `Confirm`, `Select`, `MultiSelect`,
+`Autocomplete`
 
 **Feedback** — `Spinner`, `Progress`, `Task`, `TaskList`
 
-**Hooks** — `usePromptState`, `usePromptKeys`, `useAvailableWidth`,
-`useNavigateConfirmHints`, `submitHint`, `toggleHint`, `useFrame`,
-`createManualClock`
-
-`Autocomplete` is **not** implemented. It was in the initial scope; the
-type-ahead mechanism that `Select` already provides covers the common case, and
-a filtering overlay is a different interaction with its own state model. It is
-the natural next component rather than a stub.
+**Hooks** — `usePromptState`, `usePromptKeys`, `navigateConfirmHints`,
+`submitHint`, `toggleHint`, `useFrame`, `createManualClock`. The
+width-resolution hooks (`useAvailableWidth`, `useBodyWidth`,
+`SimulatedWidthProvider`) ship in the `hooks` registry item rather than the
+package root: components take an `availableWidth` prop, and a host that needs
+to simulate a terminal width — the Workbench does — provides the provider
+itself.
 
 ## Keyboard semantics
 
@@ -174,7 +181,7 @@ Consistent across the library, and never globally hijacked:
 | `↑` `↓` | move the cursor; wraps at both ends; skips disabled options |
 | `←` `→` | move the caret, or switch a horizontal choice |
 | `Home` `End` | jump to the first / last option |
-| printable | type-ahead to a matching option, or text entry |
+| printable | type-ahead to a matching option, filter an `Autocomplete`, or text entry |
 | `Space` | toggle the highlighted entry in a multi-select |
 | `Enter` | confirm |
 | `Esc` | cancel |
@@ -187,8 +194,10 @@ it actually binds.
 ## Testing
 
 ```bash
-bun test              # unit + interaction (173 tests)
-bun run test:visual   # golden frames for every scenario
+bun test              # everything bun discovers: unit, interaction, the visual
+                      # suite, and the generated clean-consumer fixture (208 tests)
+bun run test          # unit + interaction only (134 tests)
+bun run test:visual   # golden frames for every scenario (73 tests)
 bun run typecheck
 bun run lint
 ```
@@ -210,7 +219,7 @@ bun run consumer:verify:all  # install every item into a clean project and prove
 The clean-consumer check creates a throwaway project with no dependency on this
 repository, installs the item's transitive dependencies, rejects any file that
 imports outside the installed tree, typechecks, and renders. Current status:
-**13/13 items**.
+**14/14 items**.
 
 A valid registry is not a working registry, so both are checked.
 

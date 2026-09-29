@@ -28,7 +28,7 @@
     "registry:validate": "bun run scripts/validate-registry.ts",
     "consumer:verify": "bun run scripts/verify-clean-consumer.ts",
     "consumer:verify:all": "bun run scripts/verify-all-consumers.ts",
-    "verify": "bun run typecheck && bun run lint && bun test && bun run registry:validate && bun run consumer:verify"
+    "verify": "bun run typecheck && bun run lint && bun test && bun run registry:validate && bun run consumer:verify:all"
   },
   "peerDependencies": {
     "@opentui/core": ">=0.5.0",

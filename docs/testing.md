@@ -18,10 +18,14 @@ tests/
 Run them:
 
 ```bash
-bun test                 # unit + interaction
+bun run test             # unit + interaction
 bun run test:visual      # golden frames
 bun run test:update      # regenerate goldens
 ```
+
+Bare `bun test` discovers every test file in the repository, so it also runs the
+visual suite and — once `consumer:verify` has generated it — the clean-consumer
+fixture's own render test. `bun run test` scopes to unit + interaction.
 
 ## The harness
 
@@ -38,21 +42,39 @@ await h.escape();          // press Escape
 await h.setWidth(20);      // re-render narrower without remounting
 ```
 
-### Three things that are not optional
+### Four things that are not optional
 
 **`kittyKeyboard: true`.** Without the kitty protocol a bare `ESC` is swallowed
 as a possible escape-sequence prefix and produces *no key event at all*, and a
 literal character arrives glued to a stray `ESC` (`"d"` becomes `"\u001bd"`).
 Escape and type-ahead simply cannot be asserted without it.
 
-**`flushSync` around key presses.** The key handler runs synchronously and
-calls `setState`. Without a flush boundary the frame is captured mid-update and
-every interaction assertion reads stale output. The harness wraps each press:
+**`act` around every state update.** The key handler runs synchronously and
+calls `setState`, and the test renderer enables React's act environment, so an
+update outside `act` is reported as a violation. The harness wraps each press
+in `act` with `flushSync` inside it: `act` scopes the update, `flushSync` keeps
+it landing synchronously, and the `flush` below is what actually brings the
+frame current. Without that ordering every interaction assertion reads stale
+output.
 
 ```ts
-flushSync(() => setup.mockInput.pressKey(key));
+act(() => {
+  flushSync(() => setup.mockInput.pressKey(key));
+});
 await setup.flush();
 ```
+
+Teardown runs under the same discipline, because unmounting is itself a React
+update. `tests/visual/scenarios.test.tsx` destroys each renderer inside `act`;
+`tests/interaction/workbench.test.tsx` does it in an `afterEach` — a renderer
+left alive keeps its React root mounted, so any late update (a Workbench
+banner-clear timer, for one) fires outside act long after its test ended.
+
+**`exitOnCtrlC: false` in the harness.** OpenTUI's default Ctrl+C path destroys
+the renderer on a nextTick, outside any act scope, which is an unfixable act()
+warning. The harness keeps the renderer alive so tests can assert the
+component's own Ctrl+C behavior. The components are unchanged: `usePromptKeys`
+still routes Ctrl+C to cancel.
 
 **`mockInput.pressEscape()`, not `pressKey("ESCAPE")`.** The latter silently
 produces nothing, so a test that "passes" proves nothing.
@@ -118,6 +140,15 @@ jump, type-ahead cycles, Enter submits, Escape and Ctrl+C cancel, and a resolved
 prompt ignores further input. A hint is checked to advertise only keys the
 control actually binds: a text field must not claim arrow keys.
 
+**Autocomplete** — unit-tested end to end: the filter is a case-insensitive
+substring over enabled options only (a disabled option is not in the list at
+all, so it can never be highlighted or accepted), arrows and Home/End move over
+the matches and wrap, a new filter restarts the highlight, Backspace edits,
+Enter accepts the highlighted match or submits the raw typed text when nothing
+matches, a rejected submit renders in the rail grammar and stays open without
+calling `onSubmit`, Escape and Ctrl+C cancel, and the scroll window keeps the
+highlight visible with the hidden count announced.
+
 **State machine** — the transition table is asserted directly: an open prompt can
 submit, a resolved one cannot, cancellation is reachable from every open phase,
 and an error can be corrected without leaving the flow.
@@ -133,7 +164,15 @@ including the ellipsis, and wrapping never splits a wide character.
 
 **Workbench** — renders without overflow at all five widths, switches to a
 single-column layout below the breakpoint, never collides header and status,
-and its commands (`/`, `t`, `a`, `w`, `r`, `?`) all work.
+and its commands (`/`, `t`, `a`, `w`, `r`, `?`, `q`) all work. The live pane is
+asserted to render the *real component* at every responsive width, using
+library-only glyphs (`◆●■…`) — the chrome draws `│` and `▸` too, so matching
+chrome is exactly how a suite stays green while a layout mounts no component at
+all. A navigation invariant walks the arrows through all three focus targets
+and proves they fall through to the live component at `focus = live`; the `w`
+test asserts the component actually re-renders at the simulated width, not
+merely that the status number changed; `q` asserts the `onQuit` prop rather
+than ending the test process.
 
 **Registry** — the real shadcn CLI, plus the checks it cannot make. See
 [registry.md](./registry.md).
@@ -161,7 +200,8 @@ load-bearing:
   row appeared to have changed its options. Now the labels hold still and the
   marker moves.
 - **Workbench key stealing.** A live `Select` consumed the sidebar's arrow keys.
-  Fixed with an explicit `liveFocused` flag.
+  Fixed with a single explicit focus target; at `focus = live` the Workbench
+  declines to act so the key reaches the component.
 - **Command keys swallowed.** `/` and `?` were classified as typed text. Fixed
   with a `command` channel checked before printable routing.
 - **Spacing leaks.** A `log.step` glyph that did not exist as a distinct status,

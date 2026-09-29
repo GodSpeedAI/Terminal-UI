@@ -125,9 +125,13 @@ in the user's input.
 
 This is what the Workbench runs into immediately: a live `Select` in the preview
 pane eats `↓` whether or not you are looking at it. The Workbench therefore has
-an explicit `liveFocused` flag. Lists own keys until you ask for the component;
-only then do arrows mean "move the cursor inside the Select". See
-`workbench/app/workbench.tsx`.
+a single explicit focus value — `components`, `scenarios`, or `live` — cycled
+with `Tab`. Navigation keys route to the focused list; at `focus = live` the
+Workbench's own handlers decline to act, leaving the event to the component
+underneath, which subscribes through the same `usePromptKeys`. The command
+channel passes everything through at `focus = live` too, so a typed `q` is a
+character and not a quit. `Tab` is the one key that always belongs to the
+Workbench, because it is how you leave. See `workbench/app/workbench.tsx`.
 
 ## The Scenario abstraction
 
@@ -148,18 +152,27 @@ format is deliberately not a Storybook story — it has no runner, no serializer
 and no framework coupling.
 
 `Scenario.steps` lets a fixture reach a state that is awkward as an initial prop
-("navigate twice, then submit"), and the Workbench replays the same steps.
+("navigate twice, then submit"); the visual suite replays them before capturing.
+The Workbench mounts the same `render()` from its initial state, keyed by
+scenario name so switching remounts fresh instead of inheriting the previous
+scenario's cursor positions.
 
 ## Widths are resolved, not passed
 
-`useAvailableWidth(override?)` returns the renderer's real width unless an
-override is given. Components truncate **by default** rather than only when
-their author remembered to pass a prop — the alternative is a bug that appears
-at 40 columns in a customer's terminal and nowhere else.
+`useAvailableWidth(override?)` resolves an explicit prop first, then a width
+injected by a `SimulatedWidthProvider`, then the renderer's real width.
+Components truncate **by default** rather than only when their author remembered
+to pass a prop — the alternative is a bug that appears at 40 columns in a
+customer's terminal and nowhere else.
 
-The override exists for the Workbench and the visual suite, which need to
-simulate a narrower terminal than the one they are running in, so that two
-states can be compared at the same width.
+Both override channels exist for the Workbench and the visual suite, which need
+to simulate a narrower terminal than the one they are running in. The visual
+suite simply sizes the test renderer to the scenario's declared width. The
+Workbench cannot resize the real terminal, so it wraps the live pane in
+`SimulatedWidthProvider` and the `w` knob re-renders the component under
+inspection at the simulated width — the resolution order is what lets the
+context beat the renderer. Without that provider the knob could only restate a
+number no component ever read.
 
 Terminal cell-width arithmetic lives in `src/utils/text.ts` (East Asian Width +
 combining marks). OpenTUI does not export a helper, and correctness is not
@@ -178,15 +191,20 @@ a pure function of `value` and needs no clock at all, so `progress-0`,
 `progress-50`, and `progress-100` are exact. Nothing in the suite waits on wall
 time.
 
-## The Workbench does not use this library
+## The Workbench's chrome does not use this library
 
 Deliberate. The rail grammar is the subject under inspection; wrapping the
 explorer in it would make it impossible to see where a component's output
-starts and stops. The Workbench uses plain boxes, one accent colour, and its own
+starts and stops. The chrome uses plain boxes, one accent colour, and its own
 `txt()` helper in `workbench/format.ts`.
 
-It renders the *production* components straight from their scenarios. There is
-no preview reimplementation that could drift from the real thing.
+The live pane is the one place the *production* components mount, straight from
+their scenarios — there is no preview reimplementation that could drift from the
+real thing. It hosts them inside two library pieces: `FrameProvider`, so an
+animated scenario (a Spinner) actually animates in the explorer, and
+`SimulatedWidthProvider`, so the width knob reaches `useAvailableWidth` inside
+the component. Everything around the pane stays chrome; everything inside it is
+exactly what a consumer gets.
 
 It reads dimensions from `useTerminalDimensions()` rather than
 `process.stdout`, so the responsive layout is driven by whatever is hosting it.

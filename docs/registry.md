@@ -51,7 +51,9 @@ reasons:
 1. **Dependency drift.** A hand-maintained `registryDependencies` list is a
    claim about the import graph, and claims rot. Here it is *computed* from the
    actual `import` statements, so a component cannot be published without
-   something it imports. (This is not hypothetical: the first implementation
+   something it imports; the same derivation emits each item's npm
+   `dependencies` (see above). (This is not hypothetical: the first
+   implementation
    appended `.ts` to specifiers that already ended in `.js`, resolved nothing,
    and produced a registry where every component declared no dependencies at
    all. The failure is silent — the file is well-formed.)
@@ -93,6 +95,7 @@ single-root property so it cannot be broken by accident.
 | `hooks` | `registry:hook` | `usePromptState`, `usePromptKeys`, hint builders, width resolution |
 | `prompt` | `registry:component` | the prompt shell |
 | `select` | `registry:component` | single-choice list |
+| `autocomplete` | `registry:component` | filtering combobox |
 | `multiselect` | `registry:component` | multiple-choice list |
 | `text-input` | `registry:component` | text field + `PasswordInput` |
 | `confirm` | `registry:component` | two-way choice |
@@ -104,6 +107,27 @@ single-root property so it cannot be broken by accident.
 Every file belongs to exactly one item. That keeps the graph a tree rather than
 a mesh, and it is why an item's dependencies are exactly "the items that own the
 files it imports".
+
+## Per-item npm dependencies
+
+Each item also carries a `dependencies` array of npm spec strings —
+`["@opentui/core@>=0.5.0", "react@>=19.2.0"]` — derived the same way as
+`registryDependencies`: every bare specifier the item's files import, annotated
+with the version range the root `package.json` declares for it. That is what
+lets `shadcn add` make sure the consumer actually has what the copied source
+imports, and a specifier with no peer entry fails the build rather than being
+omitted silently.
+
+The field is an **array of spec strings**, not a `specifier -> range` map: the
+shadcn item schema defines `dependencies` as `Array<string>`, and the real CLI
+rejects the map form (`dependencies: Expected array, received object`). A spec
+string is also exactly what `shadcn add` hands to the package manager. An item
+that imports nothing from npm omits the field entirely (`composition`).
+
+One accepted blind spot: the derivation parses source `import` statements,
+which cannot see the `jsx-runtime` import the compiler injects, so `.tsx` items
+understate `@opentui/react`. That is harmless — anything rendering these
+components already runs `@opentui/react`.
 
 ## Validation
 
@@ -165,7 +189,7 @@ says to expect. Verifying only `select` would leave every other item's public
 surface untested, and a registry entry with a wrong export is precisely the
 break this suite exists to catch.
 
-Current status: **13/13 items install, typecheck, and render.**
+Current status: **14/14 items install, typecheck, and render.**
 
 ## The fixture is generated, not committed
 

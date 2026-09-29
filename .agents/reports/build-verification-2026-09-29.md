@@ -210,3 +210,41 @@ Tab kills arrows (after fixing, arrows must always do something visible):
 // wide: press TAB then ARROW_DOWN twice — cursor row must move (today: frozen)
 // narrow: press TAB then ARROW_DOWN — frame must change (today: unchanged)
 ```
+
+---
+
+## Addendum — remediation outcome (2026-09-29, same day)
+
+All findings were remediated on a branch (`remediation/audit-2026-09-29`) using builder subagents with an independent verifier pass per wave. Verification was re-executed after every wave, not trusted from builder reports.
+
+### Erratum
+
+**P2-1 was partly wrong in the original report.** It claimed `bun run verify` "does not run the visual suite." In fact `verify`'s plain `bun test` already ran all test files, including the 68 visual tests — the "173 tests" in §1 already included them (105 unit/interaction/fixture + 68 visual across 7 files). The real gap was only that `verify` ran `consumer:verify` (one item) instead of `consumer:verify:all`. Fixed accordingly.
+
+### What was applied
+
+| Item | Resolution |
+| --- | --- |
+| P0-1 live pane missing at ≥72 cols | `Live` now mounted in both layouts; old metadata box replaced by a one-line usage strip (keys moved into HelpOverlay). Probe: library glyphs present at 40/60/80/120/160, and in a real pty at 120 columns. |
+| P0-2 Tab breaks navigation | `pane` + `liveFocused` replaced by one `focus: "components" \| "scenarios" \| "live"` model; Tab cycles; arrows always route to the focused target and fall through to the live component. Reproduced failures no longer reproduce. |
+| P0-3 tests pass for wrong reasons | Workbench tests now assert a library-only glyph class at every responsive width, an arrow-routing invariant (including through to the live Select), and that `w` re-renders the component at the simulated width. |
+| Bonus defect found during remediation | `w` was **cosmetic** — `scenario.render()` never received the simulated width. Fixed with `SimulatedWidthProvider` in `src/hooks/use-available-width.ts` (prop > context > renderer); the Workbench wraps the live pane in it. |
+| P1-1 docs overstate | README, CURRENT_STATUS, architecture/testing/registry docs rewritten to match; the docs pass also removed two phantom exports (`useNavigateConfirmHints`, `KeyHint`) and corrected the 72-column breakpoint description. |
+| P1-2 Autocomplete | Implemented as a full vertical slice: component on the Prompt shell, 22 unit tests, 5 scenarios + goldens, 14th registry item, clean-consumer fixture. 14/14 consumers install, typecheck, render. |
+| P2-1 gate | `verify` now runs `consumer:verify:all`. (Visual suite was already covered by plain `bun test` — see erratum.) |
+| P2-2 act() warnings | Eliminated: harness and suite presses wrapped in `act`, renderer teardown act-scoped, `exitOnCtrlC: false` in the test harness (OpenTUI's default Ctrl+C destroy ran outside act; component behavior unchanged). `bun test` warning count: 0. |
+| P3-1 real `shadcn add` | Still pending — requires a public repository. Unchanged. |
+| P3-2 per-item dependencies | `dependencies` emitted per item as npm spec strings derived from each item's real bare imports (`react@>=19.2.0`, `@opentui/core@>=0.5.0`, …). A map form was rejected by the real `shadcn registry validate` (schema: `dependencies` is `Array<string>`); spec strings are the schema's shape. |
+| P3-3 Group error | Now the Prompt shell's error row (error marker + ErrorText inside the rail grammar); golden `task-group-error` updated. |
+| P3-4 Log suffix | Width budget now applied (reserve matches the rendered `  suffix`); truncation verified at narrow widths. |
+| P3-5 warts | Label/Muted/ErrorText composed (output byte-identical); catalog import path fixed; `q` → `onQuit` prop; work committed; CI added (`.github/workflows/ci.yml` runs `bun run verify`, node for the shadcn CLI + bun 1.4). |
+
+### Final verified state
+
+`bun run verify` exit 0 — typecheck, lint, **208 tests / 0 fail** (includes 73 visual goldens, 0 act warnings), registry valid (**14 items / 27 files**, real shadcn CLI), **14/14** clean-consumer installs. Workbench: live component glyphs at all five spec widths in the test renderer and in a real pty; focus cycling and arrow routing verified by probe.
+
+### Residual notes
+
+1. **Registry dependency derivation is blind to the compiler-injected `jsx-runtime` import** — it parses source `import` statements only, so `.tsx` items understate `@opentui/react` in their `dependencies`. Harmless for any real OpenTUI consumer (which necessarily has `@opentui/react`), and `registry:validate`'s import-graph check is consistent with the same rule, but a future builder improvement could count `.tsx` files as `@opentui/react` importers.
+2. **P3-1** (`bunx shadcn add <owner>/<repo>/select` executed against the hosted registry) remains open until the repository is public.
+3. `Autocomplete`'s option-row `"disabled"` marker branch is unreachable by construction (disabled options are filtered out before rendering) — defensive, kept for symmetry with `Select`.
