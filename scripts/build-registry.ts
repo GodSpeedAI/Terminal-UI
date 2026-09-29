@@ -26,6 +26,8 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REGISTRY_ROOT = "terminal-ui";
+/** The public repository, as `owner/repo` — the slug `shadcn add` resolves. */
+const GITHUB_SLUG = "GodSpeedAI/Terminal-UI";
 
 /** The version ranges the library publishes as peer dependencies. */
 const PEER_DEPENDENCIES = (
@@ -220,18 +222,26 @@ function bareImports(files: string[]): Set<string> {
 /**
  * Compute an item's `registryDependencies`.
  *
- * Only dependencies on *other items* are listed; npm packages are carried by
- * the item's own `dependencies` metadata instead, so `shadcn add` can ensure
- * a consumer actually has what the copied source imports.
+ * Dependencies are emitted as full GitHub addresses (`GodSpeedAI/Terminal-UI/theme`),
+ * not bare names. Verified against shadcn 4.21.0: the CLI resolves a bare
+ * dependency name against the upstream `ui.shadcn.com` style registry —
+ * `styles/<style>/<name>.json` — rather than the GitHub registry the parent
+ * item came from, so a bare `theme` 404s upstream and the install dies. A
+ * full `owner/repo/item` address is routed back to this repository and
+ * resolved from the root `registry.json`, which is the behavior the
+ * `shadcn add <owner>/<repo>/<item>` UX depends on.
+ *
+ * The address has no `#ref`, so dependencies always resolve against the
+ * repository's default branch — the distribution branch.
  */
 function computeDependencies(item: ItemSpec): string[] {
   const deps = new Set<string>();
   for (const imported of localImports(item.files)) {
     const owner = OWNERSHIP[imported];
-    if (owner && owner !== item.name) deps.add(owner);
+    if (owner && owner !== item.name) deps.add(`${GITHUB_SLUG}/${owner}`);
   }
   // Always installable: an item that renders needs a theme to render with.
-  if (item.name !== "theme" && item.name !== "utils") deps.add("theme");
+  if (item.name !== "theme" && item.name !== "utils") deps.add(`${GITHUB_SLUG}/theme`);
   return [...deps].sort();
 }
 
@@ -316,7 +326,7 @@ const byName = new Map(built.map((item) => [item.name, item]));
 const registry = {
   $schema: "https://ui.shadcn.com/schema/registry.json",
   name: "terminal-ui",
-  homepage: "https://github.com/GodSpeedAI/Terminal-UI",
+  homepage: `https://github.com/${GITHUB_SLUG}`,
   // `items` is an array, not a keyed object. The keyed form is the legacy
   // shape; `shadcn registry validate` rejects it.
   items: built,

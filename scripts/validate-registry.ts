@@ -146,11 +146,16 @@ check(
 let unknownDeps = 0;
 for (const item of registry.items) {
   for (const dep of item.registryDependencies) {
-    if (!names.has(dep)) {
+    // Dependencies are emitted as full GitHub addresses
+    // (`owner/repo/item`) so the shadcn CLI resolves them against this
+    // repository instead of the upstream style registry; the item name is
+    // the address's last path segment.
+    const depName = dep.split("/").pop() ?? dep;
+    if (!names.has(depName)) {
       unknownDeps++;
       problems.push(`"${item.name}" depends on unknown item "${dep}"`);
     }
-    if (dep === item.name) problems.push(`"${item.name}" depends on itself`);
+    if (depName === item.name) problems.push(`"${item.name}" depends on itself`);
   }
 }
 check(unknownDeps === 0, "every registryDependency names a real item");
@@ -209,7 +214,9 @@ for (const item of registry.items) {
     const owner = owners.get(file);
     if (owner && owner !== item.name) actual.add(owner);
   }
-  const declared = new Set(item.registryDependencies);
+  // Declared dependencies are full GitHub addresses (`owner/repo/item`);
+  // compare item names.
+  const declared = new Set(item.registryDependencies.map((d) => d.split("/").pop() ?? d));
   const missingDeps = [...actual].filter((d) => !declared.has(d));
   const extraDeps = [...declared].filter((d) => !actual.has(d) && d !== "theme");
   if (missingDeps.length > 0) {

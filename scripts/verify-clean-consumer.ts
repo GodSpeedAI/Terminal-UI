@@ -64,7 +64,9 @@ function resolveClosure(name: string, seen = new Set<string>()): string[] {
   if (!item) throw new Error(`unknown registry item: ${name}`);
   const out: string[] = [name];
   for (const dep of item.registryDependencies) {
-    out.push(...resolveClosure(dep, seen));
+    // Dependencies are full GitHub addresses (`owner/repo/item`); the item
+    // name is the address's last path segment.
+    out.push(...resolveClosure(dep.split("/").pop() ?? dep, seen));
   }
   return out;
 }

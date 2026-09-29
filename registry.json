@@ -71,7 +71,7 @@
         }
       ],
       "registryDependencies": [
-        "theme"
+        "GodSpeedAI/Terminal-UI/theme"
       ],
       "dependencies": [
         "@opentui/core@>=0.5.0"
@@ -99,8 +99,8 @@
         }
       ],
       "registryDependencies": [
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/react@>=0.5.0",
@@ -134,8 +134,8 @@
         }
       ],
       "registryDependencies": [
-        "primitives",
-        "theme"
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/theme"
       ],
       "dependencies": [
         "@opentui/core@>=0.5.0",
@@ -155,9 +155,9 @@
         }
       ],
       "registryDependencies": [
-        "primitives",
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/react@>=0.5.0",
@@ -176,11 +176,11 @@
         }
       ],
       "registryDependencies": [
-        "hooks",
-        "primitives",
-        "prompt",
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/hooks",
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/prompt",
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/react@>=0.5.0",
@@ -199,11 +199,11 @@
         }
       ],
       "registryDependencies": [
-        "hooks",
-        "primitives",
-        "prompt",
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/hooks",
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/prompt",
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/react@>=0.5.0",
@@ -222,11 +222,11 @@
         }
       ],
       "registryDependencies": [
-        "hooks",
-        "primitives",
-        "prompt",
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/hooks",
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/prompt",
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/react@>=0.5.0",
@@ -245,11 +245,11 @@
         }
       ],
       "registryDependencies": [
-        "hooks",
-        "primitives",
-        "prompt",
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/hooks",
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/prompt",
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/react@>=0.5.0",
@@ -268,11 +268,11 @@
         }
       ],
       "registryDependencies": [
-        "hooks",
-        "primitives",
-        "prompt",
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/hooks",
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/prompt",
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/react@>=0.5.0",
@@ -291,9 +291,9 @@
         }
       ],
       "registryDependencies": [
-        "primitives",
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/core@>=0.5.0",
@@ -312,9 +312,9 @@
         }
       ],
       "registryDependencies": [
-        "primitives",
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/react@>=0.5.0"
@@ -332,9 +332,9 @@
         }
       ],
       "registryDependencies": [
-        "primitives",
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/react@>=0.5.0",
@@ -353,10 +353,10 @@
         }
       ],
       "registryDependencies": [
-        "primitives",
-        "prompt",
-        "theme",
-        "utils"
+        "GodSpeedAI/Terminal-UI/primitives",
+        "GodSpeedAI/Terminal-UI/prompt",
+        "GodSpeedAI/Terminal-UI/theme",
+        "GodSpeedAI/Terminal-UI/utils"
       ],
       "dependencies": [
         "@opentui/react@>=0.5.0",
