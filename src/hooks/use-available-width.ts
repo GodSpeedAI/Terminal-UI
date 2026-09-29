@@ -1,4 +1,5 @@
 import { useTerminalDimensions } from "@opentui/react";
+import { createContext, createElement, type ReactNode, useContext } from "react";
 
 /**
  * The width available to a component.
@@ -12,9 +13,45 @@ import { useTerminalDimensions } from "@opentui/react";
  * to pass a prop, which is exactly the kind of bug that shows up at 40 columns
  * in a customer's terminal and nowhere else.
  */
+
+/**
+ * Width injected for everything below a `SimulatedWidthProvider`.
+ *
+ * `undefined` is a meaningful value here: it means "no simulation running",
+ * which is what every plain `render` sees. The context therefore never changes
+ * behaviour for existing mounts — components only resimulate when something
+ * explicitly asks them to.
+ */
+const SimulatedWidthContext = createContext<number | undefined>(undefined);
+
+export interface SimulatedWidthProviderProps {
+  /** The width components below should treat as their own terminal width. */
+  width: number | undefined;
+  children?: ReactNode;
+}
+
+/**
+ * Simulate a terminal width for every `useAvailableWidth` call below it.
+ *
+ * The Workbench wraps the live pane in this so its width knob re-renders the
+ * component under inspection; without it the knob could only restate a number
+ * the component was never going to read. It is a context rather than a prop so
+ * the component API stays untouched — a scenario's `render()` needs no
+ * arguments to be width-simulated.
+ */
+export function SimulatedWidthProvider({ width, children }: SimulatedWidthProviderProps) {
+  return createElement(SimulatedWidthContext.Provider, { value: width }, children);
+}
+
+/**
+ * Resolve the component's width budget: an explicit prop beats a simulated
+ * width, which beats the renderer's real width. A prop is a component-local
+ * decision; the context is an environment a host (the Workbench) provides.
+ */
 export function useAvailableWidth(override?: number): number | undefined {
+  const simulated = useContext(SimulatedWidthContext);
   const { width } = useTerminalDimensions();
-  return override ?? width;
+  return override ?? simulated ?? width;
 }
 
 /**

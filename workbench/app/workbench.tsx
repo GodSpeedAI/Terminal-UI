@@ -1,5 +1,7 @@
 import { useTerminalDimensions } from "@opentui/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FrameProvider } from "../../src/components/feedback/feedback.js";
+import { SimulatedWidthProvider } from "../../src/hooks/use-available-width.js";
 import { usePromptKeys } from "../../src/hooks/use-prompt-keys.js";
 import { type CatalogEntry, catalog } from "../../src/scenario/catalog.js";
 import type { Scenario } from "../../src/scenario/types.js";
@@ -20,34 +22,48 @@ import { faint, strong, txt } from "../format.js";
  * Two panes when there is room, one when there is not. The single-column mode
  * is a real navigation stack rather than a squeezed two-pane layout: at 40
  * columns two panes are unusable, and pretending otherwise helps nobody.
+ *
+ * Keyboard ownership is a single explicit target — the component list, the
+ * scenario list, or the live component — cycled with Tab. The live component
+ * receives *every* other key untouched (nested `usePromptKeys` subscribers all
+ * see the event; the Workbench simply declines to act on it), which is what
+ * lets a live Select and a live TextInput behave exactly as they would in a
+ * consumer's app. Tab is the one key that never reaches the component, because
+ * it is how you leave.
  */
 
-/** Which list currently owns the arrow keys. */
-type Pane = "components" | "scenarios";
+/** What currently owns the keyboard. The whole focus model is this one value. */
+type Focus = "components" | "scenarios" | "live";
+
+/** Tab's cycle. There is no escape hatch from it, only another press. */
+const NEXT_FOCUS: Record<Focus, Focus> = {
+  components: "scenarios",
+  scenarios: "live",
+  live: "components",
+};
 
 /** Widths the live pane can be simulated at. */
 const WIDTHS = [40, 60, 80, 100, 120, 160] as const;
 
 const THEME_ORDER: ThemeName[] = ["clack", "ascii", "high-contrast"];
 
-export function Workbench() {
+export interface WorkbenchProps {
+  /**
+   * Called when the user quits. Hosts can route this to their own teardown;
+   * the default ends the process, because the renderer owns process lifetime
+   * and the Workbench never holds a handle an embedder would need back.
+   */
+  onQuit?: () => void;
+}
+
+export function Workbench({ onQuit }: WorkbenchProps) {
   // Dimensions come from the renderer rather than `process.stdout`, so the
   // responsive layout is driven by whatever is hosting it. In production that
   // is the terminal; in the visual suite it is the test renderer, which is the
   // only way a responsive regression can be caught by a fixture.
   const { width, height } = useTerminalDimensions();
   const [themeName, setThemeName] = useState<ThemeName>("clack");
-  const [pane, setPane] = useState<Pane>("components");
-  /**
-   * Whether the *live component* owns the keyboard.
-   *
-   * Without this, every interactive scenario claims the arrow keys and the
-   * sidebar becomes unusable — a live Select eats `↓` whether or not the user
-   * is looking at it. Focus ownership has to be explicit: the lists own keys
-   * until the user asks for the component, and only then do arrows mean
-   * "move the cursor inside the Select".
-   */
-  const [liveFocused, setLiveFocused] = useState(false);
+  const [focus, setFocus] = useState<Focus>("components");
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [cursor, setCursor] = useState(0);
@@ -101,41 +117,57 @@ export function Workbench() {
 
   const reset = useCallbackReset(scenario, setSimWidth, setThemeName, flash);
 
+  // The default ends the process: `workbench/index.tsx` mounts the Workbench
+  // bare, and the renderer owns process lifetime. Embedders can route it.
+  const quit = onQuit ?? (() => process.exit(0));
+
   usePromptKeys(
     {
-      // Navigation keys are claimed only while a list has focus. When the live
-      // component has focus they fall through to the component underneath.
+      // Navigation keys route to whatever focus names. When the live component
+      // has focus they do nothing here on purpose: the component underneath
+      // subscribes through its own `usePromptKeys`, and a Workbench-level no-op
+      // leaves the event free for it — that is how nested controls coexist.
       up: () => {
-        if (liveFocused) return;
-        if (narrow && pane === "scenarios") setScenarioCursor((c) => Math.max(0, c - 1));
+        if (focus === "live") return;
+        if (focus === "scenarios") setScenarioCursor((c) => Math.max(0, c - 1));
         else setCursor((c) => Math.max(0, c - 1));
       },
       down: () => {
-        if (liveFocused) return;
-        if (narrow && pane === "scenarios")
+        if (focus === "live") return;
+        if (focus === "scenarios")
           setScenarioCursor((c) => Math.min(Math.max(0, scenarios.length - 1), c + 1));
         else setCursor((c) => Math.min(Math.max(0, filtered.length - 1), c + 1));
       },
+      // Horizontal pane moves only exist where panes sit side by side, and
+      // never while the live component owns the keyboard: a caret move inside a
+      // live TextInput is not a pane switch.
       left: () => {
-        if (liveFocused) {
-          setLiveFocused(false);
-          return;
-        }
-        if (!narrow) setPane("components");
+        if (focus === "live" || narrow) return;
+        setFocus((f) => (f === "scenarios" ? "components" : f));
       },
       right: () => {
-        if (!narrow) setPane("scenarios");
+        if (focus === "live" || narrow) return;
+        setFocus((f) => (f === "components" ? "scenarios" : f));
       },
+      // The one key that always works, in any focus: it is the way out of the
+      // live component, so it must never be typed into one.
       tab: () => {
-        if (narrow) setPane((p) => (p === "components" ? "scenarios" : "components"));
-        setLiveFocused((f) => !f);
+        setFocus((f) => NEXT_FOCUS[f]);
       },
+      // "Open" the highlighted component. Everything else Enter could mean is
+      // the focused thing's own business (a scenario is chosen with ↓; a live
+      // prompt submits with Enter itself).
       return: () => {
-        if (narrow) setPane((p) => (p === "components" ? "scenarios" : "components"));
+        if (focus === "components") setFocus("scenarios");
       },
       // Application-level commands, resolved ahead of anything typed into a
       // live component. Return `true` to claim the key.
       command: (key) => {
+        // While the live component has focus the command channel passes
+        // *everything* through: a `q` typed into a live text field is a
+        // character, not a quit. Tab above is the only way to leave.
+        if (focus === "live") return false;
+
         if (searching) {
           if (key.name === "backspace") {
             setQuery((q) => q.slice(0, -1));
@@ -156,10 +188,6 @@ export function Workbench() {
           }
           return false;
         }
-
-        // While a live component has focus, single-letter commands are the
-        // component's business, not the Workbench's.
-        if (liveFocused && /^[a-z]$/.test(key.text)) return false;
 
         switch (key.text) {
           case "/":
@@ -194,9 +222,7 @@ export function Workbench() {
             });
             return true;
           case "q":
-            // The renderer owns process lifetime; the Workbench never holds a
-            // handle a host application would need back.
-            process.exit(0);
+            quit();
             return true;
           default:
             return false;
@@ -222,13 +248,14 @@ export function Workbench() {
 
         {narrow ? (
           <box flexDirection="column" flexGrow={1} width="100%">
-            {pane === "components" ? (
+            {focus === "components" ? (
               <ComponentList
                 entries={filtered}
                 cursor={cursor}
+                focused
                 onSelect={(i) => {
                   setCursor(i);
-                  setPane("scenarios");
+                  setFocus("scenarios");
                 }}
                 width={width}
                 query={query}
@@ -240,14 +267,15 @@ export function Workbench() {
                 cursor={scenarioCursor}
                 onSelect={setScenarioCursor}
                 width={width}
-                focused
+                focused={focus === "scenarios"}
               />
             )}
             <Live
               scenario={scenario}
               width={width}
+              simulatedWidth={liveWidth}
               height={Math.max(6, height - 16)}
-              inList={pane === "scenarios"}
+              focused={focus === "live"}
             />
           </box>
         ) : (
@@ -255,7 +283,7 @@ export function Workbench() {
             <Sidebar
               entries={filtered}
               cursor={cursor}
-              focused={pane === "components"}
+              focused={focus === "components"}
               width={sidebarWidth(width)}
               query={query}
               onSelect={setCursor}
@@ -268,13 +296,16 @@ export function Workbench() {
                 cursor={scenarioCursor}
                 onSelect={setScenarioCursor}
                 width={paneWidth}
-                focused={pane === "scenarios"}
+                focused={focus === "scenarios"}
               />
-              <Detail
-                entry={entry}
+              <Live
+                scenario={scenario}
                 width={paneWidth}
-                height={Math.max(6, height - 3 - listHeight(scenarios.length) - 2 - 1)}
+                simulatedWidth={liveWidth}
+                grow
+                focused={focus === "live"}
               />
+              {entry?.usage ? <UsageStrip usage={entry.usage} width={paneWidth} /> : null}
             </box>
           </box>
         )}
@@ -289,16 +320,33 @@ export function Workbench() {
           banner={banner}
         />
 
-        {showHelp ? <HelpOverlay width={width} height={height} onClose={() => setShowHelp(false)} /> : null}
+        {showHelp ? (
+          <HelpOverlay width={width} height={height} entry={entry} onClose={() => setShowHelp(false)} />
+        ) : null}
       </box>
     </ThemeProvider>
   );
 }
 
 function useCallbackFlash(setBanner: (v: string | null) => void) {
+  // The clear timer lives in a ref so a rapid re-flash reschedules instead of
+  // stacking timers, and the unmount cleanup cancels it — a banner clear
+  // firing after the tree is gone is a stray setState (and, under the test
+  // renderer, an act() violation) that buys the user nothing.
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (timer.current !== null) clearTimeout(timer.current);
+    },
+    [],
+  );
   return (message: string) => {
     setBanner(message);
-    setTimeout(() => setBanner(null), 1500);
+    if (timer.current !== null) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      setBanner(null);
+    }, 1500);
   };
 }
 
@@ -415,8 +463,8 @@ function Footer({
     );
   }
   const keys = narrow
-    ? "↑↓ move  tab pane  r reset  t theme  w width  / search  ? help  q quit"
-    : "↑↓ move  tab pane  r reset  t theme  a ascii  w width  / search  ? help  q quit";
+    ? "↑↓ move  tab cycle focus  r reset  t theme  w width  / search  ? help  q quit"
+    : "↑↓ move  tab cycle focus  r reset  t theme  a ascii  w width  / search  ? help  q quit";
   const right = `${themeName} · ${simWidth}w`;
   const keysWidth = Math.max(0, width - stringWidth(right) - 3);
   return (
@@ -513,12 +561,14 @@ function Sidebar({
 function ComponentList({
   entries,
   cursor,
+  focused,
   onSelect,
   width,
   query,
 }: {
   entries: readonly CatalogEntry[];
   cursor: number;
+  focused: boolean;
   onSelect: (i: number) => void;
   width: number;
   query: string;
@@ -541,28 +591,31 @@ function ComponentList({
           truncate
         />
       </box>
-      {entries.map((entry, i) => (
-        // biome-ignore lint/a11y/noStaticElementInteractions: the mouse is a shortcut onto the arrow-key path, not the only way to select
-        <box
-          key={entry.name}
-          flexDirection="row"
-          width="100%"
-          height={1}
-          backgroundColor={i === cursor ? chrome.selectedBg : undefined}
-          onMouseDown={() => onSelect(i)}
-        >
-          <text content={txt(i === cursor ? strong("▸ ", chrome.accent) : { text: "  " })} wrapMode="none" />
-          <text
-            content={txt(
-              i === cursor
-                ? strong(clip(entry.name, width - 4), chrome.accent)
-                : { text: clip(entry.name, width - 4) },
-            )}
-            wrapMode="none"
-            truncate
-          />
-        </box>
-      ))}
+      {entries.map((entry, i) => {
+        const selected = i === cursor && focused;
+        return (
+          // biome-ignore lint/a11y/noStaticElementInteractions: the mouse is a shortcut onto the arrow-key path, not the only way to select
+          <box
+            key={entry.name}
+            flexDirection="row"
+            width="100%"
+            height={1}
+            backgroundColor={selected ? chrome.selectedBg : undefined}
+            onMouseDown={() => onSelect(i)}
+          >
+            <text content={txt(selected ? strong("▸ ", chrome.accent) : { text: "  " })} wrapMode="none" />
+            <text
+              content={txt(
+                selected
+                  ? strong(clip(entry.name, width - 4), chrome.accent)
+                  : { text: clip(entry.name, width - 4) },
+              )}
+              wrapMode="none"
+              truncate
+            />
+          </box>
+        );
+      })}
     </box>
   );
 }
@@ -638,97 +691,95 @@ function ScenarioList({
   );
 }
 
-function Detail({ entry, width, height }: { entry?: CatalogEntry; width: number; height: number }) {
-  if (!entry) return <box flexGrow={1} />;
+/** The one-line usage example that replaced the old detail box. */
+function UsageStrip({ usage, width }: { usage: string; width: number }) {
   return (
-    <box
-      flexDirection="column"
-      width="100%"
-      height={height}
-      border
-      borderStyle="single"
-      borderColor={chrome.border}
-      paddingLeft={1}
-      paddingRight={1}
-    >
-      <box flexDirection="row" width="100%" height={1}>
-        <text
-          content={txt(strong(entry.name, chrome.accent), faint(`  —  ${entry.summary}`))}
-          wrapMode="none"
-          truncate
-        />
-      </box>
-      {entry.usage ? (
-        <box flexDirection="row" width="100%" height={1}>
-          <text content={txt(faint(`  ${clip(entry.usage, width - 4)}`))} wrapMode="none" truncate />
-        </box>
-      ) : null}
-      {entry.keys && entry.keys.length > 0 ? (
-        <>
-          <box flexDirection="row" width="100%" height={1}>
-            <text content={txt(faint("  keys"))} wrapMode="none" />
-          </box>
-          {entry.keys.map((k) => (
-            <box key={k.keys} flexDirection="row" width="100%" height={1}>
-              <text
-                content={txt({ text: `    ${pad(k.keys, 12)}`, color: chrome.muted }, faint(k.action))}
-                wrapMode="none"
-                truncate
-              />
-            </box>
-          ))}
-        </>
-      ) : null}
+    <box flexDirection="row" width="100%" height={1} paddingLeft={1}>
+      <text content={txt(faint(clip(usage, Math.max(0, width - 2))))} wrapMode="none" truncate />
     </box>
   );
 }
 
+/**
+ * The live pane.
+ *
+ * The only place a scenario's component is mounted. The simulated width wraps
+ * the render so the Workbench's width knob reaches `useAvailableWidth` inside
+ * the component — the renderer's real width stays untouched for everything
+ * else. The frame clock is provided here so animated scenarios (a Spinner)
+ * actually animate in the explorer.
+ */
 function Live({
   scenario,
   width,
+  simulatedWidth,
   height,
-  inList,
+  grow = false,
+  focused,
 }: {
   scenario?: Scenario;
   width: number;
-  height: number;
-  inList: boolean;
+  simulatedWidth: number;
+  height?: number;
+  grow?: boolean;
+  focused: boolean;
 }) {
   return (
     <box
       flexDirection="column"
       width="100%"
       height={height}
+      flexGrow={grow ? 1 : undefined}
       border
       borderStyle="single"
-      borderColor={inList ? chrome.border : chrome.accent}
+      borderColor={focused ? chrome.accent : chrome.border}
       paddingLeft={1}
       paddingRight={1}
     >
       <box flexDirection="row" width="100%" height={1}>
         <text
           content={txt(
-            inList
-              ? { text: clip(scenario?.name ?? "no scenario", width - 4), color: chrome.faint }
-              : strong(clip(scenario?.name ?? "no scenario", width - 4), chrome.accent),
+            focused
+              ? strong(clip(scenario?.name ?? "no scenario", width - 4), chrome.accent)
+              : { text: clip(scenario?.name ?? "no scenario", width - 4), color: chrome.faint },
           )}
           wrapMode="none"
           truncate
         />
       </box>
       <box flexDirection="column" flexGrow={1} width="100%">
-        {scenario ? scenario.render() : null}
+        {scenario ? (
+          <FrameProvider>
+            {/* Keyed by scenario so a switch remounts instead of reusing the
+            previous scenario's component instance: the pane must show the
+            selected scenario's declared state, not cursor positions carried
+            over from whatever was arrowed through before it. */}
+            <SimulatedWidthProvider key={scenario.name} width={simulatedWidth}>
+              {scenario.render()}
+            </SimulatedWidthProvider>
+          </FrameProvider>
+        ) : null}
       </box>
     </box>
   );
 }
 
-function HelpOverlay({ width, height, onClose }: { width: number; height: number; onClose: () => void }) {
+function HelpOverlay({
+  width,
+  height,
+  entry,
+  onClose,
+}: {
+  width: number;
+  height: number;
+  entry?: CatalogEntry;
+  onClose: () => void;
+}) {
   const rows: ReadonlyArray<readonly [string, string]> = [
-    ["↑ ↓", "move the cursor"],
-    ["Tab", "switch pane / list"],
-    ["← →", "switch pane (wide)"],
-    ["Enter", "open"],
+    ["↑ ↓", "move in the focused list"],
+    ["Tab", "cycle focus: lists → live"],
+    ["← →", "move focus (wide, lists only)"],
+    ["Enter", "open the selected component"],
     ["/", "search components"],
     ["r", "reset the scenario"],
     ["t", "cycle theme"],
@@ -737,13 +788,17 @@ function HelpOverlay({ width, height, onClose }: { width: number; height: number
     ["?", "toggle this help"],
     ["q", "quit"],
   ];
+  // The focused component's own keys get a second section, so the help overlay
+  // is also where a component documents itself.
+  const componentKeys = entry?.keys ?? [];
+  const rowCount = rows.length + (componentKeys.length > 0 ? componentKeys.length + 2 : 0);
   const boxWidth = Math.min(44, Math.max(22, width - 4));
   return (
     <box
       flexDirection="column"
       position="absolute"
       left={Math.max(0, Math.floor(width / 2) - Math.floor(boxWidth / 2))}
-      top={Math.max(0, Math.floor(height / 2) - Math.floor(rows.length / 2) - 1)}
+      top={Math.max(0, Math.floor(height / 2) - Math.floor(rowCount / 2) - 1)}
       width={boxWidth}
       backgroundColor="#0f172a"
       border
@@ -764,6 +819,29 @@ function HelpOverlay({ width, height, onClose }: { width: number; height: number
           />
         </box>
       ))}
+      {componentKeys.length > 0 ? (
+        <>
+          <box flexDirection="row" width="100%" height={1}>
+            <text content={txt(strong(entry?.name ?? "", chrome.accent))} wrapMode="none" />
+          </box>
+          {componentKeys.map((k) => (
+            <box key={k.keys} flexDirection="row" width="100%" height={1}>
+              <text
+                content={txt({ text: ` ${pad(k.keys, 8)}`, color: chrome.muted }, faint(k.action))}
+                wrapMode="none"
+                truncate
+              />
+            </box>
+          ))}
+        </>
+      ) : null}
+      <box flexDirection="row" width="100%" height={1}>
+        <text
+          content={txt(faint(clip(" press Tab until a list is focused to use commands", boxWidth - 2)))}
+          wrapMode="none"
+          truncate
+        />
+      </box>
       {/* biome-ignore lint/a11y/noStaticElementInteractions: `?` is the documented key path; this is its click equivalent */}
       <box flexDirection="row" width="100%" height={1} onMouseDown={onClose}>
         <text content={txt(faint(" press ? to close"))} wrapMode="none" />
